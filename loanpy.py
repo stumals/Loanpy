@@ -100,7 +100,10 @@ class Loan():
             df['closing_costs'] = closing_costs
         else:
             df['closing_costs'] = 0
-            
+        
+        # cost of selling house (fees to 3rd parties)
+        df['home_sale_cost'] = df['home_equity'] * self.home_sale_percent    
+        
         # cumulative costs
         costs = df['interest'] + df['pmi'] + df['prop_tax'] + df['maint'] + df['closing_costs']
         df['cumulative_costs'] = costs.cumsum()
@@ -113,25 +116,27 @@ class Loan():
         df['all_in_pmts'] = df['all_in_pmts'] + df['down_pmt']
         df = df.drop(columns='down_pmt')
         
-        # cost of selling house (fees to 3rd parties)
-        df['home_sale_cost'] = df['home_equity'] * self.home_sale_percent
         
         # profit_loss on home sale calc - home_equity less home_sale_percent minus cumulative_costs (property tax, pmi, etc.)
         df['home_sale_net'] = (df['home_equity'] - df['home_sale_cost']) - df['cumulative_costs']
         
         return df
     
-    def profit_loss_summary(self, monthly=True):
+    def profit_loss_summary(self, monthly=True, expand=False):
         df = self.amort_table_detail()
-        df = df[['period', 'year', 'interest', 'pmi', 'prop_tax', 'maint', 'closing_costs', 'home_sale_cost', 'home_equity']]
-        df['Cost Total'] = df[['interest', 'pmi', 'prop_tax', 'maint', 'closing_costs', 'home_sale_cost']].sum(axis=1)
-        df['Profit'] = df['home_equity'] - df['Cost Total']
+        df = df[['period', 'year', 'interest', 'pmi', 'prop_tax', 'maint', 'closing_costs', 'home_sale_cost', 
+                 'cumulative_costs', 'home_equity']]
+        df['cost_total'] = df[['cumulative_costs', 'home_sale_cost']].sum(axis=1)
+        df['profit'] = df['home_equity'] - df['cumulative_costs']
         if monthly:
             df = df.drop(columns='year')
         else:
             df = df.drop(columns='period')
             df = df.groupby('year').sum()
-        return df
+        if expand:
+            return df
+        else:
+            return df[['home_equity', 'cost_total', 'profit']]
     
 def rent_vs_buy(self, rent_start, rent_growth=.05, market_returns=.07, cap_gains_tax=.15):
     df = self.amort_table_detail()

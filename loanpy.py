@@ -189,18 +189,19 @@ def buy_vs_buy(loan_a, loan_b, time_years=10, market_returns=.07, cap_gains_tax=
     df_b['investment_net'] = df_b['investment'] - df_b['cap_gains_tax']
     df_b['return_total'] = df_b['investment_net'] + df_b['home_sale_net']
     
-    return (df_a.iloc[:time_years*12,:], df_b.iloc[:time_years*12,:])
-
-
-#%%
-df_a, df_b = buy_vs_buy(Loan(300000, .03, 30, down_pmt=.15), Loan(300000, .03, 30), time_years=5)
-
-plt.plot(df_a['return_total'], label='A')
-plt.plot(df_b['return_total'], label='B')
-plt.legend()
+    cols = ['year', 'home_sale_net', 'investment_net', 'return_total']
     
+    df_a_year = df_a[cols].groupby('year').max()
+    df_a_year.rename(columns={'home_sale_net':'Option A - Net Home Sale', 'investment_net':'Option A - Net Investment',
+                              'return_total':'Option A - Return Total'}, inplace=True)
     
+    df_b_year = df_b[cols].groupby('year').max()
+    df_b_year.rename(columns={'home_sale_net':'Option B - Net Home Sale', 'investment_net':'Option B - Net Investment',
+                              'return_total':'Option B - Return Total'}, inplace=True)
+    df_year = pd.concat([df_a_year, df_b_year], axis=1)
     
+    return (df_a.loc[:time_years*12, cols], df_b.loc[:time_years*12, cols], df_year.iloc[:time_years,:])
+
     
     
     

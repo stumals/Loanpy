@@ -125,8 +125,9 @@ class Loan():
     def profit_loss_summary(self, monthly=True, expand=False):
         df = self.amort_table_detail()
         df = df[['period', 'year', 'interest', 'pmi', 'prop_tax', 'maint', 'closing_costs', 'home_sale_cost', 
-                 'cumulative_costs', 'home_equity']]
+                 'cumulative_costs', 'home_equity', 'principal']]
         df['cost_total'] = df[['cumulative_costs', 'home_sale_cost']].sum(axis=1)
+        #df['investment'] = df['principal'].cumsum() + np.array([self.asset_start_value*self.down_pmt]*df.shape[0]) 
         df['profit'] = df['home_equity'] - df['cumulative_costs']
         if monthly:
             df = df.drop(columns='year')
@@ -138,8 +139,8 @@ class Loan():
         else:
             return df[['home_equity', 'cost_total', 'profit']]
     
-def rent_vs_buy(self, rent_start, rent_growth=.05, market_returns=.07, cap_gains_tax=.15):
-    df = self.amort_table_detail()
+def rent_vs_buy(loan, rent_start, time_years=5, rent_growth=.05, market_returns=.07, cap_gains_tax=.15):
+    df = loan.amort_table_detail()
     df['rent'] = ((1+rent_growth)**(df['year'] - 1)) * rent_start
     
     # difference between all in pmts in owning home vs rent goes to invest in stock market
@@ -149,7 +150,7 @@ def rent_vs_buy(self, rent_start, rent_growth=.05, market_returns=.07, cap_gains
     df['diff'] = df['diff'].apply(lambda x: x if x > 0 else 0)
     
     # cumulative monthly investment returns based on diff calculated
-    df['investment'] = df['diff'].cumsum() * np.array([1+(market_returns/self.pmt_freq)]*self.nper).cumprod()
+    df['investment'] = df['diff'].cumsum() * np.array([1+(market_returns/loan.pmt_freq)]*loan.nper).cumprod()
     df['diff_cumulative'] = df['diff'].cumsum()
     
     # capital gains is amount investment has grown less amount invested
@@ -163,4 +164,51 @@ def rent_vs_buy(self, rent_start, rent_growth=.05, market_returns=.07, cap_gains
     df2['rent_vs_buy'] = df2['home_sale_net'] - df2['investment_net']
     
     return df2
+
+def buy_vs_buy(loan_a, loan_b, time_years=10, market_returns=.07, cap_gains_tax=.15):
+    df_a = loan_a.amort_table_detail()
+    df_b = loan_b.amort_table_detail()
+    
+    df_a['diff'] = df_b['all_in_pmts'] - df_a['all_in_pmts']
+    df_a['diff'] = df_a['diff'].apply(lambda x: x if x > 0 else 0)
+    
+    df_b['diff'] = df_a['all_in_pmts'] - df_b['all_in_pmts']
+    df_b['diff'] = df_b['diff'].apply(lambda x: x if x > 0 else 0)
+    
+    df_a['investment'] = df_a['diff'].cumsum() * np.array([1+(market_returns/loan_a.pmt_freq)]*loan_a.nper).cumprod()
+    df_a['diff_cumulative'] = df_a['diff'].cumsum()
+    df_a['cap_gains_cumulative'] = df_a['investment'] - df_a['diff_cumulative']
+    df_a['cap_gains_tax'] = df_a['cap_gains_cumulative'] * cap_gains_tax
+    df_a['investment_net'] = df_a['investment'] - df_a['cap_gains_tax']
+    df_a['return_total'] = df_a['investment_net'] + df_a['home_sale_net']
+    
+    df_b['investment'] = df_b['diff'].cumsum() * np.array([1+(market_returns/loan_b.pmt_freq)]*loan_b.nper).cumprod()
+    df_b['diff_cumulative'] = df_b['diff'].cumsum()
+    df_b['cap_gains_cumulative'] = df_b['investment'] - df_b['diff_cumulative']
+    df_b['cap_gains_tax'] = df_b['cap_gains_cumulative'] * cap_gains_tax
+    df_b['investment_net'] = df_b['investment'] - df_b['cap_gains_tax']
+    df_b['return_total'] = df_b['investment_net'] + df_b['home_sale_net']
+    
+    return (df_a.iloc[:time_years*12,:], df_b.iloc[:time_years*12,:])
+
+
+#%%
+df_a, df_b = buy_vs_buy(Loan(300000, .03, 30, down_pmt=.15), Loan(300000, .03, 30), time_years=5)
+
+plt.plot(df_a['return_total'], label='A')
+plt.plot(df_b['return_total'], label='B')
+plt.legend()
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+
     

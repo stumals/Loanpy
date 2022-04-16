@@ -1,8 +1,10 @@
+
+#%%
 import numpy as np
 import numpy_financial as npf
 import pandas as pd
 import matplotlib.pyplot as plt
-
+#%%
 class Loan():
     def __init__(self, asset_amt, rate_annual, num_years, pmt_freq=12, down_pmt=0.0, closing_cost=0,
                  closing_cost_finance=False, prop_tax_rate=.01, pmi_rate=.01, maint_rate=.01,
@@ -116,7 +118,6 @@ class Loan():
         df['all_in_pmts'] = df['all_in_pmts'] + df['down_pmt']
         df = df.drop(columns='down_pmt')
         
-        
         # profit_loss on home sale calc - home_equity less home_sale_percent minus cumulative_costs (property tax, pmi, etc.)
         df['home_sale_net'] = (df['home_equity'] - df['home_sale_cost']) - df['cumulative_costs']
         
@@ -166,14 +167,20 @@ def rent_vs_buy(loan, rent_start, time_years=5, rent_growth=.05, market_returns=
     return df2
 
 def buy_vs_buy(loan_a, loan_b, time_years=10, market_returns=.07, cap_gains_tax=.15):
+    
+    assert loan_a.num_years >= time_years, 'Loan A shorter than investment time'
+    assert loan_b.num_years >= time_years, 'Loan B shorter than investment time'
+    
     df_a = loan_a.amort_table_detail()
     df_b = loan_b.amort_table_detail()
+    
     
     df_a['diff'] = df_b['all_in_pmts'] - df_a['all_in_pmts']
     df_a['diff'] = df_a['diff'].apply(lambda x: x if x > 0 else 0)
     
     df_b['diff'] = df_a['all_in_pmts'] - df_b['all_in_pmts']
     df_b['diff'] = df_b['diff'].apply(lambda x: x if x > 0 else 0)
+        
     
     df_a['investment'] = df_a['diff'].cumsum() * np.array([1+(market_returns/loan_a.pmt_freq)]*loan_a.nper).cumprod()
     df_a['diff_cumulative'] = df_a['diff'].cumsum()
@@ -192,24 +199,42 @@ def buy_vs_buy(loan_a, loan_b, time_years=10, market_returns=.07, cap_gains_tax=
     cols = ['year', 'home_sale_net', 'investment_net', 'return_total']
     
     df_a_year = df_a[cols].groupby('year').max()
-    df_a_year.rename(columns={'home_sale_net':'Option A - Net Home Sale', 'investment_net':'Option A - Net Investment',
-                              'return_total':'Option A - Return Total'}, inplace=True)
+    #df_a_year.rename(columns={'home_sale_net':'Option A - Net Home Sale', 'investment_net':'Option A - Net Investment',
+    #                          'return_total':'Option A - Return Total'}, inplace=True)
     
     df_b_year = df_b[cols].groupby('year').max()
-    df_b_year.rename(columns={'home_sale_net':'Option B - Net Home Sale', 'investment_net':'Option B - Net Investment',
-                              'return_total':'Option B - Return Total'}, inplace=True)
-    df_year = pd.concat([df_a_year, df_b_year], axis=1)
+    #df_b_year.rename(columns={'home_sale_net':'Option B - Net Home Sale', 'investment_net':'Option B - Net Investment',
+    #                          'return_total':'Option B - Return Total'}, inplace=True)
+    #df_year = pd.concat([df_a_year, df_b_year], axis=1)
     
-    return (df_a.loc[:time_years*12, cols], df_b.loc[:time_years*12, cols], df_year.iloc[:time_years,:])
+    #return (df_a.loc[:time_years*12, cols], df_b.loc[:time_years*12, cols], df_year.iloc[:time_years,:])
+    return (df_a.loc[:time_years*12-1, cols], df_b.loc[:time_years*12-1, cols], df_a_year.iloc[:time_years,:], df_b_year.iloc[:time_years,:])
+    
+ #%%
 
-    
-    
-    
-    
-    
-    
-    
-    
-    
+def plot_comparison(option_a, option_b):
+    plt.plot(option_a['return_total'], label='Option A');
+    plt.plot(option_b['return_total'], label='Option B');
+    plt.xlim(0, option_a.shape[0]);
+    plt.xlabel('Month');
+    plt.ylabel('Return $');
+    plt.legend();
 
-    
+def pmt_matrix(amount: int, rate: float, years=30, bins=15, range_percent=.2):
+    assert amount > 0, 'Amount is not greater than 0'
+    assert rate > 0 and rate < 1, 'Rate is not greater than 0 and less than 1'
+
+    rates = np.linspace(rate*100*(1-range_percent),rate*100*(1+range_percent), num=bins)
+    amts = np.linspace(amount*(1-range_percent),amount*(1+range_percent), num=bins)
+
+    pmts = {'amts':[], 'rates':[], 'pmt':[]}
+    for a in amts:
+        for r in rates:
+            pmt = Loan(a, r/100,30).pmt
+            pmts['amts'].append(a)
+            pmts['rates'].append(r)
+            pmts['pmt'].append(pmt)
+    df_pmts = pd.DataFrame(pmts)
+    return df_pmts.pivot(index='amts', columns='rates', values='pmt')
+
+#%%

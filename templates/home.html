@@ -1,13 +1,9 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta http-equiv="X-UA-Compatible" content="IE=edge">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Document</title>
-    <h1>Welcom to Loanpy</h1>
-</head>
-<body>
-    
-</body>
-</html>
+{% extends "layouts.html" %}
+{% block content %}
+
+    <p><a href={{url_for('mortgage_analysis')}}>Go to Mortgage Analysis page</a></p>
+    <p><a href={{url_for('mortgage_comparison')}}>Go to Mortgage Comparison page</a></p>
+    <p><a href={{url_for('data_analysis')}}>Go to Data Analysis page</a></p>
+
+    <h3>About Loanpy</h3>
+{% endblock content %}

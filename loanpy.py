@@ -9,7 +9,18 @@ class Loan():
     def __init__(self, asset_amt, rate_annual, num_years, pmt_freq=12, down_pmt=0.0, closing_cost=0,
                  closing_cost_finance=False, prop_tax_rate=.01, pmi_rate=.01, maint_rate=.01,
                  home_value_appreciation=.03, home_sale_percent=.1):
-        
+                 
+        assert asset_amt > 0, 'asset_amt must be greater than 0'
+        assert rate_annual > 0 and rate_annual < 1, 'rate_annual must be between 0 and 1'
+        assert down_pmt > 0 and down_pmt < 1, 'down_pmt must be between 0 and 1'
+        assert closing_cost > 0, 'closing_cost must be greater than 0'
+        assert type(closing_cost_finance)==bool, 'closing_cost_finance must be bool type'
+        assert prop_tax_rate > 0 and prop_tax_rate < 1, 'prop_tax_rate must be between 0 and 1'
+        assert pmi_rate > 0 and pmi_rate < 1, 'pmi_rate must be between 0 and 1'
+        assert maint_rate > 0 and maint_rate < 1, 'maint_rate must be between 0 and 1'
+        assert home_value_appreciation > 0 and home_value_appreciation < 1, 'home_value_appreciation must be between 0 and 1'
+        assert home_sale_percent > 0 and home_sale_percent < 1, 'home_sale_percent must be between 0 and 1'
+
         self.asset_start_value = asset_amt
         self.rate_annual = rate_annual
         self.rate = rate_annual / pmt_freq
@@ -140,6 +151,30 @@ class Loan():
         else:
             return df[['home_equity', 'cost_total', 'profit']]
     
+    def pmt_matrix(self, bins=10, amt_incrmt=10000, rate_incrmt=.0025):
+        assert bins%2 == 0, 'Number of bins must be even'
+        #assert amount > 0, 'Amount is not greater than 0'
+        #assert rate > 0 and rate < 1, 'Rate is not greater than 0 and less than 1'
+
+        rates = np.linspace(self.rate_annual*100 - ((bins/2)*rate_incrmt*100), self.rate_annual*100 + ((bins/2)*rate_incrmt*100), num=bins+1)
+        amts = np.linspace(self.amt - ((bins/2)*amt_incrmt), self.amt + ((bins/2)*amt_incrmt), num=bins+1)
+
+        rates = rates[rates>0]
+        amts = amts[amts>0]
+
+        pmts = {'amts':[], 'rates':[], 'pmt':[]}
+        for a in amts:
+            for r in rates:
+                pmt = -npf.pmt(r/100/self.pmt_freq, self.nper, a)
+                pmts['amts'].append(a)
+                pmts['rates'].append(r)
+                pmts['pmt'].append(pmt)
+        df_pmts = pd.DataFrame(pmts)
+        return df_pmts.pivot(index='amts', columns='rates', values='pmt')
+    
+
+
+
 def rent_vs_buy(loan, rent_start, time_years=5, rent_growth=.05, market_returns=.07, cap_gains_tax=.15):
     df = loan.amort_table_detail()
     df['rent'] = ((1+rent_growth)**(df['year'] - 1)) * rent_start
@@ -220,21 +255,12 @@ def plot_comparison(option_a, option_b):
     plt.ylabel('Return $');
     plt.legend();
 
-def pmt_matrix(amount: int, rate: float, years=30, bins=15, range_percent=.2):
-    assert amount > 0, 'Amount is not greater than 0'
-    assert rate > 0 and rate < 1, 'Rate is not greater than 0 and less than 1'
-
-    rates = np.linspace(rate*100*(1-range_percent),rate*100*(1+range_percent), num=bins)
-    amts = np.linspace(amount*(1-range_percent),amount*(1+range_percent), num=bins)
-
-    pmts = {'amts':[], 'rates':[], 'pmt':[]}
-    for a in amts:
-        for r in rates:
-            pmt = Loan(a, r/100,30).pmt
-            pmts['amts'].append(a)
-            pmts['rates'].append(r)
-            pmts['pmt'].append(pmt)
-    df_pmts = pd.DataFrame(pmts)
-    return df_pmts.pivot(index='amts', columns='rates', values='pmt')
 
 #%%
+l = Loan(300000,.04,30)
+print(l.pmt)
+print(l.pmt_matrix(bins=4))
+
+#%%
+
+print(type(False)==bool)

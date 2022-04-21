@@ -9,17 +9,17 @@ class Loan():
     def __init__(self, asset_amt, rate_annual, num_years, pmt_freq=12, down_pmt=0.0, closing_cost=0,
                  closing_cost_finance=False, prop_tax_rate=.01, pmi_rate=.01, maint_rate=.01,
                  home_value_appreciation=.03, home_sale_percent=.1):
-                 
+
         assert asset_amt > 0, 'asset_amt must be greater than 0'
         assert rate_annual > 0 and rate_annual < 1, 'rate_annual must be between 0 and 1'
-        assert down_pmt > 0 and down_pmt < 1, 'down_pmt must be between 0 and 1'
-        assert closing_cost > 0, 'closing_cost must be greater than 0'
+        assert down_pmt >= 0 and down_pmt < 1, 'down_pmt must be between 0 and 1'
+        assert closing_cost >= 0, 'closing_cost must be greater than 0'
         assert type(closing_cost_finance)==bool, 'closing_cost_finance must be bool type'
-        assert prop_tax_rate > 0 and prop_tax_rate < 1, 'prop_tax_rate must be between 0 and 1'
-        assert pmi_rate > 0 and pmi_rate < 1, 'pmi_rate must be between 0 and 1'
-        assert maint_rate > 0 and maint_rate < 1, 'maint_rate must be between 0 and 1'
-        assert home_value_appreciation > 0 and home_value_appreciation < 1, 'home_value_appreciation must be between 0 and 1'
-        assert home_sale_percent > 0 and home_sale_percent < 1, 'home_sale_percent must be between 0 and 1'
+        assert prop_tax_rate >= 0 and prop_tax_rate < 1, 'prop_tax_rate must be between 0 and 1'
+        assert pmi_rate >= 0 and pmi_rate < 1, 'pmi_rate must be between 0 and 1'
+        assert maint_rate >= 0 and maint_rate < 1, 'maint_rate must be between 0 and 1'
+        assert home_value_appreciation >= 0 and home_value_appreciation < 1, 'home_value_appreciation must be between 0 and 1'
+        assert home_sale_percent >= 0 and home_sale_percent < 1, 'home_sale_percent must be between 0 and 1'
 
         self.asset_start_value = asset_amt
         self.rate_annual = rate_annual
@@ -151,7 +151,7 @@ class Loan():
         else:
             return df[['home_equity', 'cost_total', 'profit']]
     
-    def pmt_matrix(self, bins=10, amt_incrmt=10000, rate_incrmt=.0025):
+    def pmt_matrix(self, bins=10, amt_incrmt=10000, rate_incrmt=.0025, variance=False):
         assert bins%2 == 0, 'Number of bins must be even'
         #assert amount > 0, 'Amount is not greater than 0'
         #assert rate > 0 and rate < 1, 'Rate is not greater than 0 and less than 1'
@@ -170,7 +170,10 @@ class Loan():
                 pmts['rates'].append(r)
                 pmts['pmt'].append(pmt)
         df_pmts = pd.DataFrame(pmts)
-        return df_pmts.pivot(index='amts', columns='rates', values='pmt')
+        df_matrix = df_pmts.pivot(index='amts', columns='rates', values='pmt')
+        if variance:
+            df_matrix = df_matrix - self.pmt 
+        return df_matrix
     
 
 
@@ -257,10 +260,13 @@ def plot_comparison(option_a, option_b):
 
 
 #%%
-l = Loan(300000,.04,30)
-print(l.pmt)
-print(l.pmt_matrix(bins=4))
+# l = Loan(300000,.04,30)
+# print(l.pmt)
+# df = l.pmt_matrix(bins=4, variance=True)
+# print(df)
 
 #%%
 
-print(type(False)==bool)
+# x = [1000.12, 3000.45, 5500.45]
+# print(str(x).format)
+# print("{0:,}".format(x))

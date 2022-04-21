@@ -1,4 +1,77 @@
 {% extends "layouts.html" %}
 {% block content %}
     <h3>Mortgage Analysis</h3>
+
+    <form action="" method="post">
+        <table>
+            <tr>    
+                <td><label for="amount">Amount: </label></td>
+                <td><input type="number" id="amount" name="amount", step="10000"></td>
+            </tr>
+            <tr>
+                <td><label for="rate">Rate: </label></td>
+                <td><input type="number" id="rate" name="rate", step=".01"></td>
+            </tr>
+            <tr>
+                <td><label for="num_years">Years: </label></td>
+                <td><input type="number" id="num_years" name="num_years", value="30"></td>
+            </tr>
+            <tr>
+                <td><label for="pmt_freq">Frequency: </label></td>
+                <td><input type="number" id="pmt_freq" name="pmt_freq", value="12"></td>
+            </tr>
+            <tr>
+                <td><label for="down_pmt">Down Payment %: </label></td>
+                <td><input type="number" id="down_pmt" name="down_pmt", value="0"></td>
+            </tr>
+            <tr>
+                <td><label for="closing_cost">Closing Cost $: </label></td>
+                <td><input type="number" id="closing_cost" name="closing_cost", value="0"></td>
+            </tr>
+            <tr>
+                <td><label for="prop_tax_rate">Property Tax Rate: </label></td>
+                <td><input type="number" id="prop_tax_rate" name="prop_tax_rate", value=".01", step=".01"></td>
+            </tr>
+            <tr>
+                <td><label for="pmi_rate">PMI Rate: </label></td>
+                <td><input type="number" id="pmi_rate" name="pmi_rate", value=".01", step=".01"></td>
+            </tr>
+            <tr>
+                <td><label for="maint_rate">Maintenance Rate: </label></td>
+                <td><input type="number" id="maint_rate" name="maint_rate", value=".01", step=".01"></td>
+            </tr>
+            <tr>
+                <td><label for="home_value_appreciation">Appreciation Rate: </label></td>
+                <td><input type="number" id="home_value_appreciation" name="home_value_appreciation", value=".03", step=".01"></td>
+            </tr>
+            <tr>
+                <td><label for="home_sale_percent">Sale Percent: </label></td>
+                <td><input type="number" id="home_sale_percent" name="home_sale_percent", value=".1", step=".01"></td>
+            </tr>
+            <tr>
+                <td><label for="amort_table_detail">Amortization Table w/ Detail: </label></td>
+                <td>
+                    <select id="amort_table_detail", name="amort_table_detail">
+                        <option value="No" selected>No</option>
+                        <option value="Yes">Yes</option>
+                    </select>
+                </td>
+            </tr>
+        </table><br>
+                <input type="submit">
+    </form>
+    {% if data %}
+        <h3>Loan Info</h3>
+        <p>Amount: {{ data['amt'] }}</p>
+        <p>Rate: {{ data['rate'] }}</p>
+        <p>Years: {{ data['num_years'] }}</p>
+        <p>Payment: {{ data['pmt'] }}</p><br>
+
+        <h3>Payment Variance Matrix</h3>
+        <p> {{ data['pmt_matrix'].to_html() | safe }}</p><br>
+
+        <h3>Amortization Table with Detail</h3>
+        <p> {{ data['amort_table'].to_html() | safe }}</p><br>
+    {% endif %}
+
 {% endblock content %}

@@ -22,11 +22,11 @@
             </tr>
             <tr>
                 <td><label for="down_pmt">Down Payment %: </label></td>
-                <td><input type="number" id="down_pmt" name="down_pmt", value="0"></td>
+                <td><input type="number" id="down_pmt" name="down_pmt", value="0", step=".01"></td>
             </tr>
             <tr>
                 <td><label for="closing_cost">Closing Cost $: </label></td>
-                <td><input type="number" id="closing_cost" name="closing_cost", value="0"></td>
+                <td><input type="number" id="closing_cost" name="closing_cost", value="0", step="1000"></td>
             </tr>
             <tr>
                 <td><label for="prop_tax_rate">Property Tax Rate: </label></td>
@@ -49,6 +49,24 @@
                 <td><input type="number" id="home_sale_percent" name="home_sale_percent", value=".1", step=".01"></td>
             </tr>
             <tr>
+                <td><label for="closing_cost_finance">Finance Closing Cost: </label></td>
+                <td>
+                    <select id="closing_cost_finance", name="closing_cost_finance">
+                        <option value="No" selected>No</option>
+                        <option value="Yes">Yes</option>
+                    </select>
+                </td>
+            </tr>
+            <tr>
+                <td><label for="amort_table_show">Show Amortization Table: </label></td>
+                <td>
+                    <select id="amort_table_show", name="amort_table_show">
+                        <option value="No" selected>No</option>
+                        <option value="Yes">Yes</option>
+                    </select>
+                </td>
+            </tr>
+            <tr>
                 <td><label for="amort_table_detail">Amortization Table w/ Detail: </label></td>
                 <td>
                     <select id="amort_table_detail", name="amort_table_detail">
@@ -62,16 +80,45 @@
     </form>
     {% if data %}
         <h3>Loan Info</h3>
-        <p>Amount: {{ data['amt'] }}</p>
-        <p>Rate: {{ data['rate'] }}</p>
-        <p>Years: {{ data['num_years'] }}</p>
-        <p>Payment: {{ data['pmt'] }}</p><br>
+        <table>
+            <tr>
+                <td>Price: </td>
+                <td>{{ data['start_val'] }}</td>
+            </tr>
+            <tr>
+                <td>(-) Down Payment: </td>
+                <td>{{ data['down_pmt'] }}</td>
+            </tr>
+            <tr>
+                <td>(+) Closing Cost: </td>
+                <td>{{ data['closing_cost'] }}</td>
+            </tr>
+            <tr>
+                <td>Amount: </td>
+                <td>{{ data['amt'] }}</td>
+            </tr>
+            <tr>
+                <td>Rate: </td>
+                <td>{{ data['rate'] }}</td>
+            </tr>
+            <tr>
+                <td>Years: </td>
+                <td>{{ data['num_years'] }}</td>
+            </tr>
+            <tr>
+                <td>Payment: </td>
+                <td>{{ data['pmt'] }}</td>
+            </tr>
+        </table>
 
         <h3>Payment Variance Matrix</h3>
         <p> {{ data['pmt_matrix'].to_html() | safe }}</p><br>
 
-        <h3>Amortization Table with Detail</h3>
-        <p> {{ data['amort_table'].to_html() | safe }}</p><br>
+        {% if data['amort_show'] %}
+            <h3>Amortization Table</h3>
+            <p> {{ data['amort_table'].to_html() | safe }}</p><br>
+        {% endif %}
+    
     {% endif %}
 
 {% endblock content %}

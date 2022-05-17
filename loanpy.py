@@ -1,10 +1,8 @@
-
-#%%
 import numpy as np
 import numpy_financial as npf
 import pandas as pd
 import matplotlib.pyplot as plt
-#%%
+
 class Loan():
     def __init__(self, asset_amt, rate_annual, num_years, pmt_freq=12, down_pmt=0.0, closing_cost=0,
                  closing_cost_finance=False, prop_tax_rate=.01, pmi_rate=.01, maint_rate=.01,
@@ -264,25 +262,3 @@ def plot_comparison(option_a, option_b):
     plt.xticks(np.arange(0, option_a.shape[0]+1, step=12), labels=np.arange(0, option_a.shape[0]/12+1, dtype=int));
     plt.legend();
 
-
-#%%
-a = Loan(400000, .04, 30, down_pmt=.05)
-b = Loan(300000, .0475, 15)
-
-df_a, df_b, df_a_year, df_b_year = buy_vs_buy(a, b, time_years=10)
-
-df, rent, df_year, rent_year = rent_vs_buy(a, 1600, time_years=15)
-
-plot_comparison(df, rent)
-
-#%%
-
-plt.plot(df_a['return_total'])
-plt.xticks(np.arange(0, df_a.shape[0]+1, step=12), labels=np.arange(0, 16))
-
-#%%
-
-np.arange(1, 180/12+1, dtype=int)
-
-
-# %%

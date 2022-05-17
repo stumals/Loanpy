@@ -3,14 +3,14 @@
     <h3>Mortgage Analysis</h3>
 
     <form action="" method="post">
-        <table>
+        <table class="data_table">
             <tr>    
                 <td><label for="amount">Amount: </label></td>
-                <td><input type="number" id="amount" name="amount", step="10000"></td>
+                <td><input type="number" id="amount" name="amount", step="10000", value="100000"></td>
             </tr>
             <tr>
                 <td><label for="rate">Rate: </label></td>
-                <td><input type="number" id="rate" name="rate", step=".01"></td>
+                <td><input type="number" id="rate" name="rate", step=".005", value=".03"></td>
             </tr>
             <tr>
                 <td><label for="num_years">Years: </label></td>
@@ -112,7 +112,7 @@
         </table>
 
         <h3>Payment Variance Matrix</h3>
-        <p> {{ data['pmt_matrix'].to_html() | safe }}</p><br>
+        <p> {{ data['pmt_matrix'].to_html(float_format = '{:.2f}'.format) | safe }}</p><br>
 
         {% if data['amort_show'] %}
             <h3>Amortization Table</h3>

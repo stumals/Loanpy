@@ -27,12 +27,7 @@ def get_mortgage_rates(date_index=False):
         df.set_index('date', inplace=True)
     return df
 
-# %%
-df = get_mortgage_rates(date_index=True)
-df.head()
-# %%
-plt.plot(df.iloc[:,0])
-# %%
+
 def get_fedfunds_rate(start_date, end_date=str(date.today()), rates=['avg_rate_index'], ascending=True, date_index=False):
     if ascending: asc_code = '1'
     else: asc_code = '-1'
@@ -70,5 +65,30 @@ def get_fedfunds_rate(start_date, end_date=str(date.today()), rates=['avg_rate_i
         return df.set_index('effectiveDate')
     return df
 
-#%%
+
+def get_ustreasury_rates(year, type='Daily Treasury Par Yield Curve Rates', date_index=False):
+
+    rate_type = {'Daily Treasury Par Yield Curve Rates':'daily_treasury_yield_curve',
+                'Daily Treasury Bill Rates':'daily_treasury_bill_rates',
+                'Daily Treasury Long-Term Rates':'daily_treasury_long_term_rate',
+                'Daily Treasury Par Real Yield Curve Rates':'daily_treasury_real_yield_curve',
+                'Daily Treasury Real Long-Term Rates':'daily_treasury_real_long_term'}
+
+    assert type in rate_type.keys(), 'invalid type arg, must be one of the following:\n'\
+                                     'Daily Treasury Par Yield Curve Rates\n'\
+                                     'Daily Treasury Bill Rates\n'\
+                                     'Daily Treasury Long-Term Rates\n'\
+                                     'Daily Treasury Par Real Yield Curve Rates\n'\
+                                     'Daily Treasury Real Long-Term Rates'
+    url = 'https://home.treasury.gov/resource-center/data-chart-center/interest-rates/' \
+    'daily-treasury-rates.csv/{}/all?type={}&' \
+    'amp;field_tdr_date_value={}&amp;page&amp;_format=csv'.format(year, rate_type[type], year)
+
+    r = requests.get(url)
+    df = pd.read_csv(StringIO(r.text))
+    df.Date = pd.to_datetime(df.Date)
+    if date_index:
+        return df.set_index('Date')
+    return df
+
 

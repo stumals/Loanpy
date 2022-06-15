@@ -125,18 +125,7 @@ def ustreasury_rates(start_date=str(date.today()-timedelta(days=365)), end_date=
     return df
 
 #%%
-#int(str(date.today()-timedelta(days=365))[:4])
-ustreasury_rates()
-# df = pd.DataFrame()
-# df1 = mortgage_rates(start_date='2022-01-01', end_date='2022-01-31', date_index=False)
-# df2 = mortgage_rates(start_date='2022-02-01', end_date='2022-02-28', date_index=False)
-# df = pd.concat([df, df1], axis=0)
-# df = pd.concat([df, df2], axis=0)
-# df
-
-
-#%%
-def get_stock_data(start_date, end_date=str(date.today()), ticker='%5EGSPC', date_index=True, freq='1wk'):
+def stock_data(start_date, end_date=str(date.today()), ticker='%5EGSPC', date_index=True, freq='1wk'):
     url = 'https://query2.finance.yahoo.com/v8/finance/chart/{}'.format(ticker)
     start=int(time.mktime(time.strptime(str(start_date), '%Y-%m-%d')))
     end=int(time.mktime(time.strptime(str(end_date), '%Y-%m-%d')))
@@ -160,9 +149,17 @@ def get_stock_data(start_date, end_date=str(date.today()), ticker='%5EGSPC', dat
     return df
 #%%
 
-url = 'https://www.fhfa.gov/HPI_master.csv'
-r = requests.get(url).text
-r
+def median_home_price():
 
-#%%
+    url = 'https://fred.stlouisfed.org/graph/fredgraph.csv?bgcolor=%23e1e9f0&chart_type=line&drp=0&'\
+        'fo=open%20sans&graph_bgcolor=%23ffffff&height=450&mode=fred&recession_bars=on&txtcolor='\
+        '%23444444&ts=12&tts=12&width=1168&nt=0&thu=0&trc=0&show_legend=yes&show_axis_titles=yes&'\
+        'show_tooltip=yes&id=ASPUS&scale=left&cosd=1963-01-01&coed=2022-01-01&line_color=%234572a7&'\
+        'link_values=false&line_style=solid&mark_type=none&mw=3&lw=2&ost=-99999&oet=99999&mma=0&fml=a&'\
+        'fq=Quarterly&fam=avg&fgst=lin&fgsnd=2020-02-01&line_index=1&transformation=lin&vintage_date='\
+        '2022-06-14&revision_date=2022-06-14&nd=1963-01-01'
 
+    r = requests.get(url)
+    df = pd.read_csv(StringIO(r.text))
+    return df
+# %%

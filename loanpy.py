@@ -1,10 +1,7 @@
-#%%
 import numpy as np
 import numpy_financial as npf
 import pandas as pd
 import matplotlib.pyplot as plt
-
-#%%
 
 class Loan():
     '''
@@ -82,12 +79,20 @@ class Loan():
                ==len(self.end_bal)==self.nper, "Calculated arrays DO NOT all equal number of periods"
     
     def get_attrs(self):
+        '''
+        Returns parameters used in loan instantiation
+        '''
         d = self.__dict__
         df = pd.DataFrame(index=d.keys(), data=d.values(), columns=['attributes'])
         to_drop = ['pmts', 'periods', 'interest', 'principal', 'beg_bal', 'end_bal']
         return df.drop(to_drop)
     
     def amort_table(self):
+        '''
+        Returns amortization table with number of periods equaling pmt_freq * num_years
+
+        Table columns - period, year, beg_bal, pmt, principal, interest, end_bal
+        '''
         df = pd.DataFrame()
         df['period'] = self.periods
         df['year'] = df['period'].apply(lambda x: x // self.pmt_freq if x % self.pmt_freq == 0 else x // self.pmt_freq + 1)
@@ -100,6 +105,13 @@ class Loan():
         return df.round(2)
         
     def amort_table_detail(self):
+        '''
+        Returns amortization table with additional details
+
+        Table columns - period, year, beg_bal, pmt, principal, interest, end_bal, home_value,
+        ltv_ratio, home_equity, pmi, prop_tax, maint, closing_costs, home_sale_cost,
+        cumulative_costs, all_in_pmts, home_sale_net        
+        '''
         df = self.amort_table()
         
         # home value calc, appreciating by home_value_appreciation by pmt_freq per year
@@ -154,6 +166,9 @@ class Loan():
         return df
 
     def plot_debt_vs_equity(self):
+        '''
+        Plots the debt and equity curves of the loan amortization table - ending balance and cumulative principal
+        '''
         df = self.amort_table()
         df['principal_total'] = df['principal'].cumsum()
 
@@ -191,17 +206,22 @@ class Loan():
 
         intersection = get_intersection(p1, p2)[0]
 
-        plt.plot(df[['year', 'end_bal']].groupby('year').min(), label='Debt', color='r')
-        plt.plot(df[['year', 'principal_total']].groupby('year').max(), label='Equity', color='g')
-        plt.axvline(intersection, color='b')
-        plt.xlabel('Year')
-        plt.ylabel('Amount $')
-        plt.title('Debt vs Equity')
-        plt.legend()
-        plt.xlim(1)
-        plt.ylim(0)
+        plt.plot(df[['year', 'end_bal']].groupby('year').min(), label='Debt', color='r');
+        plt.plot(df[['year', 'principal_total']].groupby('year').max(), label='Equity', color='g');
+        plt.axvline(intersection, color='b');
+        plt.xlabel('Year');
+        plt.ylabel('Amount $');
+        plt.title('Debt vs Equity');
+        plt.legend();
+        plt.xlim(1);
+        plt.ylim(0);
 
     def plot_total_pmt(self):
+        '''
+        Plots a stacked bar chart showing the all in payment each month through the life of the loan
+
+        Includes interest, principal, property tax, maintenance, and PMI
+        '''
         df = self.amort_table_detail()
         df_pmt = df[['year', 'pmt', 'pmi', 'prop_tax', 'maint']]
         data = df_pmt.groupby('year').mean()
@@ -211,17 +231,20 @@ class Loan():
         c = data['prop_tax']
         d = data['pmt']
         if df_pmt['pmi'].sum() != 0:
-            plt.bar(x, data['pmi'], color='y', label='PMI', bottom=b+c+d)
-        plt.bar(x, data['maint'], color='r', label='Maintenance', bottom=c+d)
-        plt.bar(x, data['prop_tax'], color='b', label='Property Tax', bottom=d)
-        plt.bar(x, data['pmt'], color='g', label='Mortgage Payment')
-        plt.legend(loc='lower left')
-        plt.ylim(l.pmt*.5)
-        plt.xlabel('Year')
-        plt.ylabel('Payment')
-        plt.title('Monthly Total Payment by Year')
+            plt.bar(x, data['pmi'], color='y', label='PMI', bottom=b+c+d);
+        plt.bar(x, data['maint'], color='r', label='Maintenance', bottom=c+d);
+        plt.bar(x, data['prop_tax'], color='b', label='Property Tax', bottom=d);
+        plt.bar(x, data['pmt'], color='g', label='Mortgage Payment');
+        plt.legend(loc='lower left');
+        plt.ylim(l.pmt*.5);
+        plt.xlabel('Year');
+        plt.ylabel('Payment');
+        plt.title('Monthly Total Payment by Year');
     
     def profit_loss_summary(self, monthly=True, expand=False):
+        '''
+        Returns a dataframe showing the net profit of the home loan over each year
+        '''
         df = self.amort_table_detail()
         df = df[['period', 'year', 'interest', 'pmi', 'prop_tax', 'maint', 'closing_costs', 'home_sale_cost', 
                  'cumulative_costs', 'home_equity', 'principal']]
@@ -239,6 +262,9 @@ class Loan():
             return df[['home_equity', 'cost_total', 'profit']]
     
     def pmt_matrix(self, bins=10, amt_incrmt=10000, rate_incrmt=.0025, variance=False):
+        '''
+        Returns matrix of how payment changes with increasing/decreasing inital asset amount and rate
+        '''
         assert bins%2 == 0, 'Number of bins must be even'
         assert amt_incrmt > 0, 'Amount is not greater than 0'
         assert rate_incrmt > 0 and rate_incrmt < 1, 'Rate is not greater than 0 and less than 1'
@@ -262,8 +288,10 @@ class Loan():
             df_matrix = df_matrix - self.pmt 
         return df_matrix
 
-def affordability_calc(gross_income, rate=0, amt=0, pmt_percent=.28, 
-                         bins=16, amt_incrmt=10000, rate_incrmt=.0025):
+def affordability_calc(gross_income, rate=0, amt=0, pmt_percent=.28, bins=16, amt_incrmt=10000, rate_incrmt=.0025):
+    '''
+    Returns dataframe of varying asset amounts and rates based on a fixed payment that is calculated as a % of gross income
+    '''
     pmt = gross_income/12 * pmt_percent
     def calc_rate(amt):
         return npf.rate(360, -pmt, amt, 0)*12*100
@@ -285,10 +313,26 @@ def affordability_calc(gross_income, rate=0, amt=0, pmt_percent=.28,
     
     return df
 
-#%%
-    
 def rent_vs_buy(loan, rent_start, time_years=10, rent_growth=.05, market_returns=.07, cap_gains_tax=.15):
-    
+    '''
+    Compares net returns of buying a home vs renting. Whichever option has a lower all in monthly cost,
+    that difference is invested in the stock market.
+
+    Parameters
+    ----------
+    loan : instance of Loan class
+    rent_start : cost of rental unit at current time
+    time_years : number of years comparison is carried out to
+    rent_growth : how much rent grows each year
+    market_returns : annual stock market return assumption
+    cap_gains_tax : capital gains tax deducted from market returns
+
+    Returns 4 dataframes in a tuple
+    1. Monthly view of buy option
+    2. Monthly view of rent option
+    3. Yearly view of buy option
+    4. Yearly view of rent option
+    '''
     assert loan.num_years >= time_years, 'Loan arg num_years shorter than time_years'
     
     df = loan.amort_table_detail()
@@ -327,7 +371,25 @@ def rent_vs_buy(loan, rent_start, time_years=10, rent_growth=.05, market_returns
 
 
 def buy_vs_buy(loan_a, loan_b, time_years=10, market_returns=.07, cap_gains_tax=.15, detail=False):
-    
+    '''
+    Compares net returns 2 different buy options. Whichever option has a lower all in monthly cost,
+    that difference is invested in the stock market.
+
+    Parameters
+    ----------
+    loan_a : first instance of Loan class
+    loan_b : second instance of Loan class
+    time_years : number of years comparison is carried out to
+    market_returns : annual stock market return assumption
+    cap_gains_tax : capital gains tax deducted from market returns
+    detail : flag to show additional columns or not
+
+    Returns 4 dataframes in a tuple
+    1. Monthly view of loan_a
+    2. Monthly view of loan_b
+    3. Yearly view of loan_a
+    4. Yearly view of loan_b
+    '''
     assert loan_a.num_years >= time_years, 'Loan A shorter than investment time'
     assert loan_b.num_years >= time_years, 'Loan B shorter than investment time'
     
@@ -367,6 +429,11 @@ def buy_vs_buy(loan_a, loan_b, time_years=10, market_returns=.07, cap_gains_tax=
 
 
 def plot_comparison(option_a, option_b):
+    '''
+    Plots the comparisons calculated in rent_vs_buy or buy_vs_buy
+
+    Use the same time period of options when plotting (monthly vs yearly)
+    '''
     plt.plot(option_a['return_total'], label='Option A');
     plt.plot(option_b['return_total'], label='Option B');
     plt.xlim(0, option_a.shape[0]);
@@ -374,10 +441,3 @@ def plot_comparison(option_a, option_b):
     plt.ylabel('Return $');
     plt.xticks(np.arange(0, option_a.shape[0]+1, step=12), labels=np.arange(0, option_a.shape[0]/12+1, dtype=int));
     plt.legend();
-
-
-# %%
-
-l = Loan(300000, .07, 30, down_pmt=.2)
-l.plot_debt_vs_equity()
-# %%

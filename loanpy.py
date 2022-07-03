@@ -7,10 +7,28 @@ import matplotlib.pyplot as plt
 #%%
 
 class Loan():
+    '''
+    Framework for generating and analyzing mortgage amortization data
+
+    Parameters
+    ----------
+    asset_amt : value of property to get loan for
+    rate_annual : annual rate of loan
+    num_years : number of years of loan
+    pmt_freq : number of payments per year
+    down_pmt : down payment percentage on loan
+    closing_cost : closing cost of loan
+    closing_cost_finance : boolean if the closing cost is financied through loan or not
+    prop_tax_rate : property tax rate
+    pmi_rate : private mortgage insurance rate
+    maint_rate : maintance rate
+    home_value_appreciation : annual appreciation rate of property
+    home_sale_percent : percent cost of sale of property
+    '''
     def __init__(self, asset_amt, rate_annual, num_years, pmt_freq=12, down_pmt=0.0, closing_cost=0,
                  closing_cost_finance=False, prop_tax_rate=.01, pmi_rate=.01, maint_rate=.01,
                  home_value_appreciation=.03, home_sale_percent=.1):
-
+       
         assert asset_amt > 0, 'asset_amt must be greater than 0'
         assert rate_annual > 0 and rate_annual < 1, 'rate_annual must be between 0 and 1'
         assert down_pmt >= 0 and down_pmt < 1, 'down_pmt must be between 0 and 1'
@@ -56,7 +74,7 @@ class Loan():
         self.beg_bal = balance(self.amt, self.rate, self.periods - 1, self.pmt)
         self.end_bal = balance(self.amt, self.rate, self.periods, self.pmt)
 
-        # check if calculations are accurate
+        # check if calculations are correct
         assert np.allclose(self.interest + self.principal, self.pmt), "Interest + Principal DOES NOT equal Payment"
         assert np.allclose(self.end_bal[-1], 0), "Ending balance after last payment DOES NOT equal 0.0"
         assert np.allclose(self.beg_bal[0], self.amt), "Beginning loan balance DOES NOT equal loan amount"
@@ -134,6 +152,74 @@ class Loan():
         df['home_sale_net'] = (df['home_equity'] - df['home_sale_cost']) - df['cumulative_costs']
         
         return df
+
+    def plot_debt_vs_equity(self):
+        df = self.amort_table()
+        df['principal_total'] = df['principal'].cumsum()
+
+        df2 = pd.DataFrame()
+        df2['equity'] = df[['year', 'principal_total']].groupby('year').max()
+        df2['debt'] = df[['year', 'end_bal']].groupby('year').min()
+
+        i = df2[df2['equity'] > df2['debt']].index.min()
+        x1 = i - 1
+        y1 = df2.loc[x1, 'debt']
+        x2 = i
+        y2 = df2.loc[x2, 'debt']
+        x3 = i - 1
+        y3 = df2.loc[x3, 'equity']
+        x4 = i
+        y4 = df2.loc[x4, 'equity']
+
+        def get_line(x1, x2, y1, y2):
+            points = [(x1, y1), (x2, y2)]
+            x_coords, y_coords = zip(*points)
+            a = np.vstack([x_coords, np.ones(len(x_coords))]).T
+            m, c = np.linalg.lstsq(a, y_coords, rcond=None)[0]
+            x = -m
+            c = -c
+            y = 1
+            return {'a':x, 'b':y, 'c':c}
+
+        def get_intersection(p1, p2):
+            x = (p1['b']*p2['c']-p2['b']*p1['c'])/(p1['a']*p2['b']-p2['a']*p2['b'])
+            y = (p1['c']*p2['a']-p2['c']*p1['a'])/(p1['a']*p2['b']-p2['a']*p1['b'])
+            return (x, y)
+
+        p1 = get_line(x1, x2, y1, y2)
+        p2 = get_line(x3, x4, y3, y4)
+
+        intersection = get_intersection(p1, p2)[0]
+
+        plt.plot(df[['year', 'end_bal']].groupby('year').min(), label='Debt', color='r')
+        plt.plot(df[['year', 'principal_total']].groupby('year').max(), label='Equity', color='g')
+        plt.axvline(intersection, color='b')
+        plt.xlabel('Year')
+        plt.ylabel('Amount $')
+        plt.title('Debt vs Equity')
+        plt.legend()
+        plt.xlim(1)
+        plt.ylim(0)
+
+    def plot_total_pmt(self):
+        df = self.amort_table_detail()
+        df_pmt = df[['year', 'pmt', 'pmi', 'prop_tax', 'maint']]
+        data = df_pmt.groupby('year').mean()
+        x = data.index
+        a = data['pmi']
+        b = data['maint']
+        c = data['prop_tax']
+        d = data['pmt']
+        if df_pmt['pmi'].sum() != 0:
+            plt.bar(x, data['pmi'], color='y', label='PMI', bottom=b+c+d)
+        plt.bar(x, data['maint'], color='r', label='Maintenance', bottom=c+d)
+        plt.bar(x, data['prop_tax'], color='b', label='Property Tax', bottom=d)
+        plt.bar(x, data['pmt'], color='g', label='Mortgage Payment')
+        plt.legend(loc='lower left')
+        plt.ylim(l.pmt*.5)
+        plt.xlabel('Year')
+        plt.ylabel('Payment')
+        plt.title('Monthly Total Payment by Year')
     
     def profit_loss_summary(self, monthly=True, expand=False):
         df = self.amort_table_detail()
@@ -178,18 +264,12 @@ class Loan():
 
 def affordability_calc(gross_income, rate=0, amt=0, pmt_percent=.28, 
                          bins=16, amt_incrmt=10000, rate_incrmt=.0025):
-
     pmt = gross_income/12 * pmt_percent
-
     def calc_rate(amt):
         return npf.rate(360, -pmt, amt, 0)*12*100
-
     def calc_amt(rate):
         return npf.pv(rate/12/100, 360, -pmt, 0)
-
     df = pd.DataFrame()
-
-
     if amt == 0:
         rates = np.linspace(rate*100 - ((bins/2)*rate_incrmt*100), rate*100 + ((bins/2)*rate_incrmt*100), num=bins+1)
         df['rates'] = rates
@@ -198,7 +278,6 @@ def affordability_calc(gross_income, rate=0, amt=0, pmt_percent=.28,
         amts = np.linspace(amt - ((bins/2)*amt_incrmt), amt + ((bins/2)*amt_incrmt), num=bins+1)
         df['loan_amts'] = amts
         df['rates'] = pd.Series(amts).apply(calc_rate)
-    
     df['gross_income'] = gross_income
     df['gross_income_mthly'] = gross_income/12
     df['percent_gross_income'] = pmt_percent
@@ -208,10 +287,9 @@ def affordability_calc(gross_income, rate=0, amt=0, pmt_percent=.28,
 
 #%%
     
-
 def rent_vs_buy(loan, rent_start, time_years=10, rent_growth=.05, market_returns=.07, cap_gains_tax=.15):
     
-    assert loan.num_years >= time_years, 'Loan arg num years shorter than time_years'
+    assert loan.num_years >= time_years, 'Loan arg num_years shorter than time_years'
     
     df = loan.amort_table_detail()
 
@@ -297,3 +375,9 @@ def plot_comparison(option_a, option_b):
     plt.xticks(np.arange(0, option_a.shape[0]+1, step=12), labels=np.arange(0, option_a.shape[0]/12+1, dtype=int));
     plt.legend();
 
+
+# %%
+
+l = Loan(300000, .07, 30, down_pmt=.2)
+l.plot_debt_vs_equity()
+# %%

@@ -1,4 +1,3 @@
-#%%
 import pandas as pd
 import numpy as np
 import os
@@ -7,10 +6,11 @@ from io import StringIO
 from datetime import date, datetime, timedelta
 import time
 import matplotlib.pyplot as plt
-#%%
 
 def mortgage_rates(start_date=str(date.today()-timedelta(days=365)), end_date=str(date.today()), date_index=True):
-
+    '''
+    Returns dataframe of mortgage rates from Freddie Mac
+    '''
     assert type(start_date) == str and type(end_date) == str, "Enter start and end dates as 'YYYY-MM-DD'"
 
     url = 'https://www.freddiemac.com/pmms/docs/PMMS_history.csv'
@@ -20,7 +20,6 @@ def mortgage_rates(start_date=str(date.today()-timedelta(days=365)), end_date=st
     assert 'date' in df.columns, 'date not a column name'
 
     for c in df.columns:
-        #print(c)
         if c == 'date':
             df[c] = pd.to_datetime(df[c])
         else:
@@ -41,9 +40,10 @@ def mortgage_rates(start_date=str(date.today()-timedelta(days=365)), end_date=st
         df.set_index('date', inplace=True)
     return df
 
-#%%
-def fedfunds_rates(start_date=str(date.today()-timedelta(days=365)), end_date=str(date.today()), 
-                   rates=['avg_rate_index'], ascending=True, date_index=True):
+def fedfunds_rates(start_date=str(date.today()-timedelta(days=365)), end_date=str(date.today()), rates=['avg_rate_index'], ascending=True, date_index=True):
+    '''
+    Returns dataframe of fed funds rates from the New York Fed
+    '''
 
     if ascending: asc_code = '1'
     else: asc_code = '-1'
@@ -75,7 +75,6 @@ def fedfunds_rates(start_date=str(date.today()-timedelta(days=365)), end_date=st
 
     url = 'https://markets.newyorkfed.org/read?startDt={}&endDt={}&eventCodes={}'\
     '&productCode=50&sort=postDt:{},eventCode:1&format=xml'.format(start_date, end_date, rt_input, asc_code)
-    #print(url)
     r = requests.get(url)
     df = pd.read_xml(StringIO(r.text), xpath='//rate')
     df = df.rename(columns={'effectiveDate':'date'})
@@ -83,13 +82,19 @@ def fedfunds_rates(start_date=str(date.today()-timedelta(days=365)), end_date=st
         return df.set_index('date')
     return df
 
-#%%
+def ustreasury_rates(start_date=str(date.today()-timedelta(days=365)), end_date=str(date.today()), type='Daily Treasury Par Yield Curve Rates', date_index=True):
+    '''
+    Returns dataframe with US Treasury rates
 
-def ustreasury_rates(start_date=str(date.today()-timedelta(days=365)), end_date=str(date.today()),
-                     type='Daily Treasury Par Yield Curve Rates', date_index=True):
+    Type parameter has several options - pass second item to type parameter:
+
+    Daily Treasury Par Yield Curve Rates : daily_treasury_yield_curve,
+    Daily Treasury Bill Rates : daily_treasury_bill_rates,
+    Daily Treasury Long-Term Rates : daily_treasury_long_term_rate,
+    Daily Treasury Par Real Yield Curve Rates : daily_treasury_real_yield_curve,
+    Daily Treasury Real Long-Term Rates : daily_treasury_real_long_term
+    '''
     
-    #assert type(start_date) == str and type(end_date) == str, "Enter start and end dates as 'YYYY-MM-DD'"
-
     start_year = int(start_date[:4])
     end_year = int(end_date[:4])
     years = list(range(start_year, end_year+1))
@@ -124,8 +129,12 @@ def ustreasury_rates(start_date=str(date.today()-timedelta(days=365)), end_date=
         return df.set_index('date')
     return df
 
-#%%
 def stock_data(start_date, end_date=str(date.today()), ticker='%5EGSPC', date_index=True, freq='1wk'):
+    '''
+    Returns stock martket data from Yahoo Finance
+
+    Update ticker parameter for different stocks
+    '''
     url = 'https://query2.finance.yahoo.com/v8/finance/chart/{}'.format(ticker)
     start=int(time.mktime(time.strptime(str(start_date), '%Y-%m-%d')))
     end=int(time.mktime(time.strptime(str(end_date), '%Y-%m-%d')))
@@ -147,10 +156,11 @@ def stock_data(start_date, end_date=str(date.today()), ticker='%5EGSPC', date_in
         return df.set_index('date')
 
     return df
-#%%
 
 def median_home_price():
-
+    '''
+    Returns dataframe of median home prices from the St. Louis Fed
+    '''
     url = 'https://fred.stlouisfed.org/graph/fredgraph.csv?bgcolor=%23e1e9f0&chart_type=line&drp=0&'\
         'fo=open%20sans&graph_bgcolor=%23ffffff&height=450&mode=fred&recession_bars=on&txtcolor='\
         '%23444444&ts=12&tts=12&width=1168&nt=0&thu=0&trc=0&show_legend=yes&show_axis_titles=yes&'\
@@ -162,4 +172,3 @@ def median_home_price():
     r = requests.get(url)
     df = pd.read_csv(StringIO(r.text))
     return df
-# %%

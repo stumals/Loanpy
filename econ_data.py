@@ -76,8 +76,18 @@ def fedfunds_rates(start_date=str(date.today()-timedelta(days=365)), end_date=st
     url = 'https://markets.newyorkfed.org/read?startDt={}&endDt={}&eventCodes={}'\
     '&productCode=50&sort=postDt:{},eventCode:1&format=xml'.format(start_date, end_date, rt_input, asc_code)
     r = requests.get(url)
+
+    if r.text.find('Site Maintenance') > 0:
+        raise Exception('markets.newyorkfed.org site under maintenance')
+
     df = pd.read_xml(StringIO(r.text), xpath='//rate')
     df = df.rename(columns={'effectiveDate':'date'})
+
+    df['date'] = pd.to_datetime(df['date'])
+    start = pd.to_datetime(start_date)
+    end = pd.to_datetime(end_date)
+    df = df[(df['date']>=start) & (df['date']<=end)]
+
     if date_index:
         return df.set_index('date')
     return df
@@ -124,12 +134,16 @@ def ustreasury_rates(start_date=str(date.today()-timedelta(days=365)), end_date=
 
     df = df.sort_values('date')
     df = df.reset_index(drop=True)
+    
+    start = pd.to_datetime(start_date)
+    end = pd.to_datetime(end_date)
+    df = df[(df['date']>=start) & (df['date']<=end)]
 
     if date_index:
         return df.set_index('date')
     return df
 
-def stock_data(start_date, end_date=str(date.today()), ticker='%5EGSPC', date_index=True, freq='1wk'):
+def stock_data(start_date=str(date.today()-timedelta(days=365)), end_date=str(date.today()), ticker='%5EGSPC', date_index=True, freq='1wk'):
     '''
     Returns stock martket data from Yahoo Finance
 
@@ -152,12 +166,17 @@ def stock_data(start_date, end_date=str(date.today()), ticker='%5EGSPC', date_in
         df = df.rename(columns={'price':'SP500'})
     else:
         df = df.rename(columns={'price':ticker})
+
+    start = pd.to_datetime(start_date)
+    end = pd.to_datetime(end_date)
+    df = df[(df['date']>=start) & (df['date']<=end)]    
+    
     if date_index:
         return df.set_index('date')
 
     return df
 
-def median_home_price():
+def median_home_price(start_date=str(date.today()-timedelta(days=365)), end_date=str(date.today()), date_index=True):
     '''
     Returns dataframe of median home prices from the St. Louis Fed
     '''
@@ -171,4 +190,13 @@ def median_home_price():
 
     r = requests.get(url)
     df = pd.read_csv(StringIO(r.text))
+    df = df.rename(columns={'DATE':'date'})
+
+    df['date'] = pd.to_datetime(df['date'])
+    start = pd.to_datetime(start_date)
+    end = pd.to_datetime(end_date)
+    df = df[(df['date']>=start) & (df['date']<=end)]
+
+    if date_index:
+        return df.set_index('date')
     return df

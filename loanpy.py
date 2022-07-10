@@ -236,7 +236,7 @@ class Loan():
         plt.bar(x, data['prop_tax'], color='b', label='Property Tax', bottom=d);
         plt.bar(x, data['pmt'], color='g', label='Mortgage Payment');
         plt.legend(loc='lower left');
-        plt.ylim(l.pmt*.5);
+        plt.ylim(self.pmt*.5);
         plt.xlabel('Year');
         plt.ylabel('Payment');
         plt.title('Monthly Total Payment by Year');

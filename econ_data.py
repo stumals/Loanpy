@@ -214,16 +214,50 @@ class EconData():
         self.df = df
         self.df_name = 'Median Home Prices'
 
+    def money_supply(self, m_type='M2'):
+
+        url = 'https://fred.stlouisfed.org/graph/fredgraph.csv?bgcolor=%23e1e9f0&chart_type=line&drp=0&fo=open%20sans&graph'\
+              '_bgcolor=%23ffffff&height=450&mode=fred&recession_bars=on&txtcolor=%23444444&ts=12&tts=12&width=1168&nt=0&thu'\
+              '=0&trc=0&show_legend=yes&show_axis_titles=yes&show_tooltip=yes&id={}SL&scale=left&cosd={}&coed={}'\
+              '&line_color=%234572a7&link_values=false&line_style=solid&mark_type=none&mw=3&lw=2&ost=-99999&oet=99999&mma=0&fml'\
+              '=a&fq=Monthly&fam=avg&fgst=lin&fgsnd=2020-02-01&line_index=1&transformation=lin&vintage_date=2022-07-10&revision_'\
+              'date=2022-07-10&nd=1959-01-01'.format(m_type, self.start, self.end)
+
+        r = requests.get(url)
+        df = pd.read_csv(StringIO(r.text))
+        df = df.rename(columns={'DATE':'date'})
+
+        df['date'] = pd.to_datetime(df['date'])
+        start = pd.to_datetime(self.start)
+        end = pd.to_datetime(self.end)
+        df = df[(df['date']>=start) & (df['date']<=end)]
+
+        if self.date_index:
+            df.set_index('date', inplace=True)
+        self.df = df
+        self.df_name = 'Money Supply'
+
+    def CPI_data(self):
+        pass
+        
+
     def plot_df(self, *col_names):
-        plt.plot(self.df.loc[:,col_names[0]])
+        if not(col_names):
+            plt.plot(self.df, label=self.df.columns[0])
+        else:
+            for c in col_names[0]:
+                plt.plot(self.df.loc[:,c], label=c)
         plt.title(self.df_name)
         plt.legend()
+        plt.xlim(self.df.index.min(), self.df.index.max())
+        plt.xticks(rotation=45)
 
 # %%
-a = EconData()
-a.mortgage_rates()
-a.plot_df(['30yr_FRM', '15yr_FRM'])
+a = EconData(start_date='2020-01-01')
+a.money_supply()
+a.plot_df()
 # %%
+a.df.describe()
 # %%
 
 def abc(*args):
@@ -236,4 +270,63 @@ abc(['a', 'b', 'c'])
 df = pd.DataFrame(np.random.rand(5, 4))
 df.columns = ['a', 'b', 'c', 'd']
 df
+# %%
+url = 'https://fred.stlouisfed.org/graph/fredgraph.csv?bgcolor=%23e1e9f0&chart_type=line&drp=0&fo=open%20sans&graph'\
+        '_bgcolor=%23ffffff&height=450&mode=fred&recession_bars=on&txtcolor=%23444444&ts=12&tts=12&width=1168&nt=0&thu'\
+        '=0&trc=0&show_legend=yes&show_axis_titles=yes&show_tooltip=yes&id=M3SL&scale=left&cosd={}&coed={}'\
+        '&line_color=%234572a7&link_values=false&line_style=solid&mark_type=none&mw=3&lw=2&ost=-99999&oet=99999&mma=0&fml'\
+        '=a&fq=Monthly&fam=avg&fgst=lin&fgsnd=2020-02-01&line_index=1&transformation=lin&vintage_date=2022-07-10&revision_'\
+        'date=2022-07-10&nd=1980-01-01'
+
+r = requests.get(url)
+df = pd.read_csv(StringIO(r.text))
+df
+
+# %%
+
+url = 'https://download.bls.gov/pub/time.series/cu/cu.series'
+r = requests.get(url)
+df_code = pd.read_csv(StringIO(r.text), sep='\t')
+df_code.columns = [col.strip() for col in df_code.columns]
+df_code = df_code.loc[:,['series_id', 'series_title']].set_index('series_id')
+# %%
+url = 'https://download.bls.gov/pub/time.series/cu/cu.data.0.Current'
+r = requests.get(url)
+df = pd.read_csv(StringIO(r.text), sep='\t')
+df.columns = [col.strip() for col in df.columns]
+df = df.iloc[:,:-1].set_index('series_id')
+df = df.merge(df_code, how='left', right_index=True, left_index=True)
+# %%
+p_remove = ['S01', 'S02', 'S03', 'M13']
+df = df.query('period not in @p_remove')
+def get_date(row):
+    return str(row['year']) + '-' + row['period'][1:] + '-' + '01'
+df['date'] = df.apply(get_date, axis=1)
+
+# %%
+len(list(df['series_title'].unique()))
+# %%
+series_map = {'All items in U.S. city average, all urban consumers, seasonally adjusted':'all_items',
+               'Energy in U.S. city average, all urban consumers, seasonally adjusted':'energy',
+               'Commodities in U.S. city average, all urban consumers, seasonally adjusted':'commodities',
+               'Food in U.S. city average, all urban consumers, seasonally adjusted':'food',
+               'Shelter in U.S. city average, all urban consumers, seasonally adjusted':'shelter',
+               'Transportation in U.S. city average, all urban consumers, seasonally adjusted':'transportation',
+               'Fuel oil and other fuels in U.S. city average, all urban consumers, seasonally adjusted':'fuel',
+               'Electricity in U.S. city average, all urban consumers, seasonally adjusted':'electricity',
+               'New cars and trucks in U.S. city average, all urban consumers, seasonally adjusted':'new_cars',
+               'Used cars and trucks in U.S. city average, all urban consumers, seasonally adjusted':'used_cars',
+               'Gasoline (all types) in U.S. city average, all urban consumers, seasonally adjusted':'gasoline',
+               'Airline fares in U.S. city average, all urban consumers, seasonally adjusted':'air_fare'}
+
+list(series_map.keys())
+
+# %%
+df = df.reset_index()
+series_keep = list(series_map.keys())
+
+df['category'] = df['series_title'].map(series_map)
+#%%
+df = df.loc[:, ['date', 'category', 'value']].dropna()
+df.pivot('date', 'category', 'value')
 # %%

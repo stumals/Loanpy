@@ -7,6 +7,7 @@ from io import StringIO
 from datetime import date, datetime, timedelta
 import time
 import matplotlib.pyplot as plt
+pd.options.mode.chained_assignment = None
 #%%
 class EconData():
 
@@ -237,9 +238,50 @@ class EconData():
         self.df = df
         self.df_name = 'Money Supply'
 
-    def CPI_data(self):
-        pass
-        
+    def CPI_data(self, season_adj=True, area_base='0000'):
+        url = 'https://download.bls.gov/pub/time.series/cu/cu.item'
+        r = requests.get(url)
+        df_code = pd.read_csv(StringIO(r.text), sep='\t')
+        df_code.columns = [col.strip() for col in df_code.columns]
+        df_code = df_code[['item_code', 'item_name']].set_index('item_code')
+        base_codes = [c for c in list(set(df_code.index)) if len(c) == 3]
+
+        url = 'https://download.bls.gov/pub/time.series/cu/cu.area'
+        r = requests.get(url)
+        df_area = pd.read_csv(StringIO(r.text), sep='\t')
+        df_area.columns = [col.strip() for col in df_area.columns]
+        df_area = df_area[['area_code', 'area_name']].set_index('area_code')
+
+        url = 'https://download.bls.gov/pub/time.series/cu/cu.data.0.Current'
+        r = requests.get(url)
+        df = pd.read_csv(StringIO(r.text), sep='\t')
+        df.columns = [col.strip() for col in df.columns]
+        df['survey_abbv'] = df['series_id'].apply(lambda x: x.strip()[:2])
+        df['seasonal_code'] = df['series_id'].apply(lambda x: x.strip()[2])
+        df['periodicity_code'] = df['series_id'].apply(lambda x: x.strip()[3])
+        df['area_code'] = df['series_id'].apply(lambda x: x.strip()[4:8])
+        df['item_code'] = df['series_id'].apply(lambda x: x.strip()[8:])
+        df = df.set_index('item_code')
+        df = df.merge(df_code, how='left', right_index=True, left_index=True).reset_index()
+        df = df.set_index('area_code')
+        df = df.merge(df_area, how='left', right_index=True, left_index=True).reset_index()
+
+        p_remove = ['S01', 'S02', 'S03', 'M13']
+        df = df.query('period not in @p_remove')
+
+        df['date'] = df.loc[:,'year'].astype(str) + '-' + df.loc[:,'period'].str[1:] + '-01'
+        df['date'] = pd.to_datetime(df.loc[:,'date'])
+        start = pd.to_datetime(self.start)
+        end = pd.to_datetime(self.end)
+        df = df[(df.loc[:,'date']>=start) & (df.loc[:,'date']<=end)]
+
+        if seasonal_adj:
+            df = df.query("item_code == @base_codes & seasonal_code == 'S' & periodicity_code == 'R' & area_code == @area_base")
+        else:
+            df = df.query("item_code == @base_codes & seasonal_code == 'U' & periodicity_code == 'R' & area_code == @area_base")
+        df = df.loc[:, ['date', 'item_name', 'value']].pivot('date', 'item_name', 'value')
+        self.df = df
+        self.df_name = 'CPI'
 
     def plot_df(self, *col_names):
         if not(col_names):
@@ -254,79 +296,6 @@ class EconData():
 
 # %%
 a = EconData(start_date='2020-01-01')
-a.money_supply()
-a.plot_df()
-# %%
-a.df.describe()
-# %%
+a.CPI_data()
+a.plot_df([list(a.df.columns)[:4]])
 
-def abc(*args):
-    df = pd.DataFrame(np.random.rand(5, 4))
-    df.columns = ['a', 'b', 'c', 'd']
-    print(df[args[0]])
-abc(['a', 'b', 'c'])
-
-# %%
-df = pd.DataFrame(np.random.rand(5, 4))
-df.columns = ['a', 'b', 'c', 'd']
-df
-# %%
-url = 'https://fred.stlouisfed.org/graph/fredgraph.csv?bgcolor=%23e1e9f0&chart_type=line&drp=0&fo=open%20sans&graph'\
-        '_bgcolor=%23ffffff&height=450&mode=fred&recession_bars=on&txtcolor=%23444444&ts=12&tts=12&width=1168&nt=0&thu'\
-        '=0&trc=0&show_legend=yes&show_axis_titles=yes&show_tooltip=yes&id=M3SL&scale=left&cosd={}&coed={}'\
-        '&line_color=%234572a7&link_values=false&line_style=solid&mark_type=none&mw=3&lw=2&ost=-99999&oet=99999&mma=0&fml'\
-        '=a&fq=Monthly&fam=avg&fgst=lin&fgsnd=2020-02-01&line_index=1&transformation=lin&vintage_date=2022-07-10&revision_'\
-        'date=2022-07-10&nd=1980-01-01'
-
-r = requests.get(url)
-df = pd.read_csv(StringIO(r.text))
-df
-
-# %%
-
-url = 'https://download.bls.gov/pub/time.series/cu/cu.series'
-r = requests.get(url)
-df_code = pd.read_csv(StringIO(r.text), sep='\t')
-df_code.columns = [col.strip() for col in df_code.columns]
-df_code = df_code.loc[:,['series_id', 'series_title']].set_index('series_id')
-# %%
-url = 'https://download.bls.gov/pub/time.series/cu/cu.data.0.Current'
-r = requests.get(url)
-df = pd.read_csv(StringIO(r.text), sep='\t')
-df.columns = [col.strip() for col in df.columns]
-df = df.iloc[:,:-1].set_index('series_id')
-df = df.merge(df_code, how='left', right_index=True, left_index=True)
-# %%
-p_remove = ['S01', 'S02', 'S03', 'M13']
-df = df.query('period not in @p_remove')
-def get_date(row):
-    return str(row['year']) + '-' + row['period'][1:] + '-' + '01'
-df['date'] = df.apply(get_date, axis=1)
-
-# %%
-len(list(df['series_title'].unique()))
-# %%
-series_map = {'All items in U.S. city average, all urban consumers, seasonally adjusted':'all_items',
-               'Energy in U.S. city average, all urban consumers, seasonally adjusted':'energy',
-               'Commodities in U.S. city average, all urban consumers, seasonally adjusted':'commodities',
-               'Food in U.S. city average, all urban consumers, seasonally adjusted':'food',
-               'Shelter in U.S. city average, all urban consumers, seasonally adjusted':'shelter',
-               'Transportation in U.S. city average, all urban consumers, seasonally adjusted':'transportation',
-               'Fuel oil and other fuels in U.S. city average, all urban consumers, seasonally adjusted':'fuel',
-               'Electricity in U.S. city average, all urban consumers, seasonally adjusted':'electricity',
-               'New cars and trucks in U.S. city average, all urban consumers, seasonally adjusted':'new_cars',
-               'Used cars and trucks in U.S. city average, all urban consumers, seasonally adjusted':'used_cars',
-               'Gasoline (all types) in U.S. city average, all urban consumers, seasonally adjusted':'gasoline',
-               'Airline fares in U.S. city average, all urban consumers, seasonally adjusted':'air_fare'}
-
-list(series_map.keys())
-
-# %%
-df = df.reset_index()
-series_keep = list(series_map.keys())
-
-df['category'] = df['series_title'].map(series_map)
-#%%
-df = df.loc[:, ['date', 'category', 'value']].dropna()
-df.pivot('date', 'category', 'value')
-# %%

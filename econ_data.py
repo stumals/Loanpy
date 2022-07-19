@@ -1,4 +1,4 @@
-#%%
+from calendar import month
 import pandas as pd
 import numpy as np
 import os
@@ -8,8 +8,28 @@ from datetime import date, datetime, timedelta
 import time
 import matplotlib.pyplot as plt
 pd.options.mode.chained_assignment = None
-#%%
+
 class EconData():
+    '''
+    Framework for getting different types of economic data for analysis
+
+    Args:
+        start_date: start date of data to query from dataframes
+        end_date: end date of data to query from dataframes
+        date_index: sets the dataframe index to date
+
+    Run one of the following to set self.df to the desired dataframe
+        mortgage_rates: rates from Freddie Mac
+        fedfunds_rates: fed funds rates from the New York Fed
+        ustreasury_rates: US Treasury Rates
+        stock_data: stock market data by ticker symbol from yahoo finance
+        median_home_price: quarterly median home prices from the St. Louis Fed
+        money_supply: M1, M2, or M3 money supply from the St. Louis Fed
+        CPI_data: CPI data from the Bureau of Labor Statistics
+
+    plot_df plots self.df
+
+    '''
 
     def __init__(self, start_date=str(date.today()-timedelta(days=365)), end_date=str(date.today()), date_index=True):
         
@@ -191,7 +211,7 @@ class EconData():
 
     def median_home_price(self):
         '''
-        Returns dataframe of median home prices from the St. Louis Fed
+        Returns dataframe of quarterly median home prices from the St. Louis Fed
         '''
         url = 'https://fred.stlouisfed.org/graph/fredgraph.csv?bgcolor=%23e1e9f0&chart_type=line&drp=0&'\
             'fo=open%20sans&graph_bgcolor=%23ffffff&height=450&mode=fred&recession_bars=on&txtcolor='\
@@ -216,6 +236,9 @@ class EconData():
         self.df_name = 'Median Home Prices'
 
     def money_supply(self, m_type='M2'):
+        '''
+        Returns dataframe of M1, M2, or M3 money supply from the St. Louis Fed 
+        '''
 
         url = 'https://fred.stlouisfed.org/graph/fredgraph.csv?bgcolor=%23e1e9f0&chart_type=line&drp=0&fo=open%20sans&graph'\
               '_bgcolor=%23ffffff&height=450&mode=fred&recession_bars=on&txtcolor=%23444444&ts=12&tts=12&width=1168&nt=0&thu'\
@@ -238,7 +261,13 @@ class EconData():
         self.df = df
         self.df_name = 'Money Supply'
 
-    def CPI_data(self, season_adj=True, area_base='0000'):
+    def CPI_data(self, seasonal_adj=True, inflation=True, area_base='0000'):
+        '''
+        Returns a dataframe of CPI data
+
+        Using inflation equals True converts CPI data to YoY inflation
+        Major CPI categories are set as column names with date as index
+        '''
         url = 'https://download.bls.gov/pub/time.series/cu/cu.item'
         r = requests.get(url)
         df_code = pd.read_csv(StringIO(r.text), sep='\t')
@@ -271,7 +300,7 @@ class EconData():
 
         df['date'] = df.loc[:,'year'].astype(str) + '-' + df.loc[:,'period'].str[1:] + '-01'
         df['date'] = pd.to_datetime(df.loc[:,'date'])
-        start = pd.to_datetime(self.start)
+        start = pd.to_datetime(self.start) - pd.DateOffset(years=1, months=2)
         end = pd.to_datetime(self.end)
         df = df[(df.loc[:,'date']>=start) & (df.loc[:,'date']<=end)]
 
@@ -280,10 +309,20 @@ class EconData():
         else:
             df = df.query("item_code == @base_codes & seasonal_code == 'U' & periodicity_code == 'R' & area_code == @area_base")
         df = df.loc[:, ['date', 'item_name', 'value']].pivot('date', 'item_name', 'value')
-        self.df = df
+
+        if inflation:
+            self.df = df.pct_change(12).dropna()
+        else:
+            self.df = df
         self.df_name = 'CPI'
 
     def plot_df(self, *col_names):
+        '''
+        Plots the self.df attribute
+
+        A list of col_names can be passed in to plot multiple lines
+        '''
+
         if not(col_names):
             plt.plot(self.df, label=self.df.columns[0])
         else:
@@ -293,9 +332,3 @@ class EconData():
         plt.legend()
         plt.xlim(self.df.index.min(), self.df.index.max())
         plt.xticks(rotation=45)
-
-# %%
-a = EconData(start_date='2020-01-01')
-a.CPI_data()
-a.plot_df([list(a.df.columns)[:4]])
-

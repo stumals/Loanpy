@@ -436,8 +436,7 @@ def plot_comparison(option_a, option_b):
     '''
     plt.plot(option_a['return_total'], label='Option A');
     plt.plot(option_b['return_total'], label='Option B');
-    plt.xlim(0, option_a.shape[0]);
+    plt.xlim(1, option_a.shape[0]);
     plt.xlabel('Year');
     plt.ylabel('Return $');
-    plt.xticks(np.arange(0, option_a.shape[0]+1, step=12), labels=np.arange(0, option_a.shape[0]/12+1, dtype=int));
     plt.legend();

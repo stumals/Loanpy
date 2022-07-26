@@ -18,7 +18,7 @@ class EconData():
         end_date: end date of data to query from dataframes
         date_index: sets the dataframe index to date
 
-    Run one of the following to set self.df to the desired dataframe
+    Run one of the following methods to set self.df to the desired dataframe
         mortgage_rates: rates from Freddie Mac
         fedfunds_rates: fed funds rates from the New York Fed
         ustreasury_rates: US Treasury Rates
@@ -27,8 +27,9 @@ class EconData():
         money_supply: M1, M2, or M3 money supply from the St. Louis Fed
         CPI_data: CPI data from the Bureau of Labor Statistics
 
-    plot_df plots self.df
-
+    Plotting functionality
+        plot_df: plots self.df as time series. Can pass col_names for multiple lines
+        plot_df_box: plots self.df as box plot. Can pass col_names for specific box plots
     '''
 
     def __init__(self, start_date=str(date.today()-timedelta(days=365)), end_date=str(date.today()), date_index=True):
@@ -312,9 +313,10 @@ class EconData():
 
         if inflation:
             self.df = df.pct_change(12).dropna()
+            self.df_name = 'Inflation'
         else:
             self.df = df
-        self.df_name = 'CPI'
+            self.df_name = 'CPI'
 
     def plot_df(self, *col_names):
         '''
@@ -332,3 +334,22 @@ class EconData():
         plt.legend()
         plt.xlim(self.df.index.min(), self.df.index.max())
         plt.xticks(rotation=45)
+
+    def plot_df_box(self, *col_names):
+        '''
+        Plots self.df as a boxplot
+
+        A list of col_names can be passed to plot specific columns
+        '''
+        df = self.df.copy()
+        if col_names:
+            cols = list(df[col_names[0]].mean().sort_values(ascending=True).index)
+        else:
+            cols = list(df.mean().sort_values(ascending=True).index)
+        plt.boxplot(df[cols], labels=cols, vert=False);
+        if 'date' not in df.columns:
+            title = self.df_name + ': ' + df.index.min().strftime('%Y-%m') + ' to ' + df.index.max().strftime('%Y-%m')
+            plt.title(title);
+        else:
+            title = self.df_name + ': ' + df['date'].min().strftime('%Y-%m') + ' to ' + df['date'].max().strftime('%Y-%m')
+            plt.title(title);

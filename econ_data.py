@@ -353,3 +353,19 @@ class EconData():
         else:
             title = self.df_name + ': ' + df['date'].min().strftime('%Y-%m') + ' to ' + df['date'].max().strftime('%Y-%m')
             plt.title(title);
+
+    def plot_yield_curve(self, tbills=['10 Yr', '2 Yr']):
+        '''
+        Plots the spread between longer term US Treasuries vs shorter term
+
+        Pass in 2 US Treasury Bonds to see spread (first must be longer term than second)
+        self.df must be set with us_treasury rates to plot
+        '''
+        assert self.df_name == 'US Treasury Rates', 'set self.df to us_treasury rates'
+        assert int(tbills[0].split(' ')[0]) > int(tbills[1].split(' ')[0]), 'First tbill must be longer term than second'
+
+        plt.plot(self.df[tbills[0]] - self.df[tbills[1]]);
+        plt.xlim(self.df.index.min(), self.df.index.max());
+        plt.xticks(rotation=45);
+        plt.axhline(0, color='r');
+        plt.title('US Yield Curve: {} vs {}'.format(tbills[0], tbills[1]));

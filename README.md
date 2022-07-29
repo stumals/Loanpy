@@ -13,4 +13,4 @@ econ_data contains the EconData class with methods to scrape data for Mortgage R
 
 To use - import econ_data as ed
 
-Additional exammples of usage can be found in the demo jupyter notebook and descriptions of can be found in the docstrings.
+Additional exammples of usage can be found in the demo jupyter notebook and descriptions of classes, methods, and functions can be found in the docstrings.

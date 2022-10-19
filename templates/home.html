@@ -1,9 +1,14 @@
 {% extends "layouts.html" %}
-{% block content %}
 
-    <p><a href={{url_for('mortgage_analysis')}}>Go to Mortgage Analysis page</a></p>
-    <p><a href={{url_for('mortgage_comparison')}}>Go to Mortgage Comparison page</a></p>
-    <p><a href={{url_for('data_analysis')}}>Go to Data Analysis page</a></p>
+{% block page_title %}
+<div class="page_title">Mortgage Analysis Home Page</div>
+{% endblock page_title %}
 
-    <h3>About Loanpy</h3>
-{% endblock content %}
+{% block sidebar %}
+
+    <p><a href={{url_for('mortgage_analysis')}}>Mortgage Analysis</a></p>
+    <p><a href={{url_for('mortgage_comparison')}}>Comparison</a></p>
+    <p><a href={{url_for('data_analysis')}}>Data Analysis</a></p>
+
+{% endblock sidebar %}
+<div class="page_title">Mortgage Analysis Home Page</div>

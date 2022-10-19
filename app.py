@@ -1,49 +1,23 @@
+#%%
+#from crypt import methods
 from flask import Flask, render_template, url_for, request
 from loanpy import Loan
+from econ_data import EconData as ed
+import json
+#%%
 
 app = Flask(__name__)
 
 @app.route('/') 
-def home():  
-    return render_template('home.html')
+def home(): 
+    mr = ed()
+    mr.mortgage_rates()
+    homepage_data = mr.df.iloc[:,0].reset_index().to_json(orient='records')
+    return render_template('home.html', data=homepage_data)
 
-@app.route('/mortgage_analysis', methods=['GET', 'POST']) 
+@app.route('/mortgage_analysis') 
 def mortgage_analysis():
-    data = {}
-    if request.method == 'POST':
-        form_data = request.form
-        if form_data['closing_cost_finance'] == 'Yes':
-            closing_cost_finance = True
-        else:
-            closing_cost_finance = False
-        l = Loan(float(form_data['amount']), float(form_data['rate']), int(form_data['num_years']), pmt_freq=int(form_data['pmt_freq']),
-                down_pmt=float(form_data['down_pmt']), closing_cost=float(form_data['closing_cost']), closing_cost_finance=closing_cost_finance, 
-                prop_tax_rate=float(form_data['prop_tax_rate']), pmi_rate=float(form_data['pmi_rate']), 
-                maint_rate=float(form_data['maint_rate']), home_value_appreciation=float(form_data['home_value_appreciation']),
-                home_sale_percent=float(form_data['home_sale_percent']))
-        data['start_val'] = l.asset_start_value
-        data['down_pmt'] = l.down_pmt * l.asset_start_value
-        if l.closing_cost_finance:
-            data['closing_cost'] = l.closing_cost
-        else:
-            data['closing_cost'] = 0
-        data['pmt'] = l.pmt
-        data['amt'] = l.amt
-        data['rate'] = l.rate_annual
-        data['num_years'] = l.num_years
-        data['pmt_matrix'] = l.pmt_matrix(variance=True)
-        #data['amort_show'] = False
-        if form_data['amort_table_show'] == 'Yes':
-            data['amort_show'] = True
-        else:
-            data['amort_show'] = False
-        if form_data['amort_table_detail'] == 'Yes':
-            data['amort_table'] = l.amort_table_detail()
-        elif form_data['amort_table_detail'] == 'No':
-            data['amort_table'] = l.amort_table()
-        
-
-    return render_template('mortgage_analysis.html', data=data)
+    return render_template('mortgage_analysis.html')
 
 @app.route('/mortgage_comparison') 
 def mortgage_comparison():  

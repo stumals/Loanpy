@@ -1,14 +1,17 @@
+#%%
 from calendar import month
 import pandas as pd
 import numpy as np
+import numpy_financial as npf
 import os
 import requests
+from bs4 import BeautifulSoup
 from io import StringIO
 from datetime import date, datetime, timedelta
 import time
 import matplotlib.pyplot as plt
 pd.options.mode.chained_assignment = None
-
+#%%
 class EconData():
     '''
     Framework for getting different types of economic data for analysis
@@ -26,6 +29,7 @@ class EconData():
         median_home_price: quarterly median home prices from the St. Louis Fed
         money_supply: M1, M2, or M3 money supply from the St. Louis Fed
         CPI_data: CPI data from the Bureau of Labor Statistics
+        home_price: monthly median home price and inflation adj
 
     Plotting functionality
         plot_df: plots self.df as time series. Can pass col_names for multiple lines
@@ -234,7 +238,7 @@ class EconData():
         if self.date_index:
             df.set_index('date', inplace=True)
         self.df = df
-        self.df_name = 'Median Home Prices'
+        self.df_name = 'Quarterly Median Home Prices'
 
     def money_supply(self, m_type='M2'):
         '''
@@ -318,6 +322,35 @@ class EconData():
             self.df = df
             self.df_name = 'CPI'
 
+    def home_price(self):
+        '''
+        Returns the monthly median home price and inflation adj median home price
+        '''
+        url = 'https://dqydj.com/historical-home-prices/#Historical_Median_Home_Value'
+        r = requests.get(url)
+        soup = BeautifulSoup(r.content, 'html5lib')
+        table = soup.find('table', attrs={'class', 'has-fixed-layout'})
+
+        data = []
+        for row in table.findAll('tr'):
+            row_data = row.text.split('$')
+            if len(row_data) == 1:
+                continue
+            else: 
+                dt, price, price_adj = row_data
+                r = [pd.to_datetime(dt), float(price.replace(',', '')), float(price_adj.replace(',', ''))]
+                data.append(r)
+
+        df = pd.DataFrame(data, columns=['date', 'price', 'price_adj'])
+        start = pd.to_datetime(self.start)
+        end = pd.to_datetime(self.end)
+        df = df[(df['date']>=start) & (df['date']<=end)]
+
+        if self.date_index:
+            df.set_index('date', inplace=True)
+        self.df = df
+        self.df_name = 'Monthly Median Home Prices'
+
     def plot_df(self, *col_names):
         '''
         Plots the self.df attribute
@@ -369,3 +402,39 @@ class EconData():
         plt.xticks(rotation=45);
         plt.axhline(0, color='r');
         plt.title('US Yield Curve: {} vs {}'.format(tbills[0], tbills[1]));
+
+def pmt_df(df_price, df_rate):
+    '''
+    Returns dataframe of payments calculated from mortgage rates and median home prices
+    '''
+    df_rate['year'] = df_rate.iloc[:,0].apply(lambda x: x.year)
+    df_rate['month'] = df_rate.iloc[:,0].apply(lambda x: x.month)
+    df_rate_max = df_rate.iloc[:,[0,2,3]].groupby(['year', 'month']).max().reset_index().set_index('date')
+    df_rate_max = df_rate_max.merge(df_rate.set_index('date').iloc[:,0], how='left', left_index=True, right_index=True).reset_index()
+    df_rate_max = df_rate_max.set_index(['year', 'month'])
+    df_rate_max['30yr_FRM'] = df_rate_max['30yr_FRM'] / 100 / 12
+
+    df_price['year'] = df_price.iloc[:,0].apply(lambda x: x.year)
+    df_price['month'] = df_price.iloc[:,0].apply(lambda x: x.month)
+    df_pmt = df_price.set_index(['year', 'month']).merge(df_rate_max, how='left', left_index=True, right_index=True).reset_index()
+    df_pmt = df_pmt.iloc[:,3:].rename(columns={'date_y':'date'})
+
+    def calc_pmt(row):
+        return -npf.pmt(row['30yr_FRM'], 360, row['price_adj'])
+
+    df_pmt['pmt'] = df_pmt.apply(calc_pmt, axis=1)
+    df_pmt = df_pmt.loc[:,['date', 'pmt']]
+
+    return df_pmt
+#%%
+
+d = EconData(start_date='2012-01-01')
+d.mortgage_rates()
+df_rate = d.df.reset_index().iloc[:,:2]
+
+d = EconData(start_date='2012-01-01')
+d.home_price()
+df_price = d.df.reset_index().iloc[:,[0,-1]]
+# %%
+pmt_df(df_price, df_rate)
+# %%

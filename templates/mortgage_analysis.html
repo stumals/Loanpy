@@ -76,9 +76,16 @@
 
 <script>
     
-    function create_table(data, name) {
+    function create_table(data, name, headers) {
         d3.select('.main').append('table')
             .attr('id', name)
+
+        d3.select('#' + name).selectAll('th')
+            .data(headers)
+            .enter()
+            .append('th')
+            .text(function(d){return d})
+
         d3.select('#' + name).selectAll('tr')
             .data(data)
             .enter()
@@ -96,7 +103,7 @@
 
         var m = {top: 30, bottom: 40, left: 40, right: 30}
         var w = 700 - m.left - m.right
-        var h = 200 - m.top - m.bottom
+        var h = 175 - m.top - m.bottom
 
         var xScale = d3.scaleBand().range([0, w])
         var yScale = d3.scaleLinear().range([h, 0])
@@ -119,7 +126,7 @@
             .data(data_pmt)
             .enter()
             .append('rect')
-            .attr('width', w/data_pmt.length - 3)
+            .attr('width', w/data_pmt.length - 4)
             .attr('height', data => h - yScale(data.value))
             .attr('x', data => xScale(data.year))
             .attr('y', data => yScale(data.value))
@@ -148,7 +155,7 @@
 // ----------------------------------------------------------------
 
     var data_table = {{ data['summary_info'] | safe }}
-    create_table(data_table, 'table_loan_info')
+    create_table(data_table, 'table_loan_info', ['Loan Info', 'Values'])
 
     var data_list = {{ data['total_pmt'] | safe }}
     data_list = data_list.slice(0,15)
@@ -159,8 +166,31 @@
         row['value'] = data_list[i][1]
         data_pmt.push(row)
     }
-    console.log(data_list.slice(0,15))
+    
     create_pmt_bar(data_pmt)
+
+    var data_pmt = {{ data['pmt_detail'] | safe }}
+    data_pmt_15 = []
+    row_headers = ['Mortgage Payment  ', 'Property Tax  ', 'Maintenance  ', 'PMI  ', 'Total  ']
+    for (let i=0; i<data_pmt.length; i++) {
+        var row = [row_headers[i]]
+        for (let j=0; j<15; j++) {
+            row.push(data_pmt[i][j])    
+        }
+        data_pmt_15.push(row)
+    }
+
+    headers_pmt_detail = ['Payment Type  ']
+    for (let i=0; i<15; i++) {
+        var h = 'Year ' + (i+1)
+        headers_pmt_detail.push(h)
+    }
+    console.log(headers_pmt_detail)
+    console.log(data_pmt_15)
+
+    create_table(data_pmt_15, 'table_pmt_detail', headers_pmt_detail)
+
+
 
 </script>
 

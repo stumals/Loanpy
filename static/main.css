@@ -1,0 +1,86 @@
+/* The sidebar menu */
+.outer-container {
+    display: table;
+        width: 100%;
+        height: 100%;
+}
+
+.sidenav {
+    display: table-cell;
+    width: 15%; /* Set the width of the sidebar */
+    vertical-align: top;
+    padding: 0%;
+    background-color: lightgreen;
+  }
+  
+  /* Style page content */
+  .main {
+    display: table-cell;
+    width: 85%;
+    vertical-align: top;
+    padding: 1%;
+  }
+  
+  /* On smaller screens, where height is less than 450px, change the style of the sidebar (less padding and a smaller font size) */
+  @media screen and (max-height: 450px) {
+    .sidenav {padding-top: 15px;}
+    .sidenav a {font-size: 18px;}
+  }
+
+  .page_title {
+    display: table-cell;
+    vertical-align: top;
+    padding: 1%;
+    font-size: large;
+  }
+
+  .data_table {
+    color: black;
+  }
+
+  html {
+    height: 100%;
+  }
+  
+  body {
+    margin: 0;
+    height: 100%;
+  }
+
+  /* .input_row {
+    width: 15%;
+    font-size: smaller;
+  } */
+
+  .input_field {
+    font-size: 14px;
+    position: relative;
+    padding: 1%;
+    width: 90%;
+  }
+
+  #table_div {
+    width: 100%;
+    height: 120px;
+    padding: 2%;
+  }
+
+  td {
+    font-size: smaller;
+  }
+
+  #table_loan_info tr:nth-child(even) {
+    background-color: rgba(150, 212, 212, 0.4);
+  }
+  
+  #table_pmt_detail tr:nth-child(even) {
+    background-color: rgba(150, 212, 212, 0.4);
+  }
+
+  #table_pmt_detail th:nth-child(even), #table_pmt_detail td:nth-child(even) {
+    background-color: rgba(150, 212, 212, 0.4);
+  }
+
+  th {
+    font-size: smaller;
+  }

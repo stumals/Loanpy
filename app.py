@@ -115,6 +115,14 @@ def mortgage_analysis():
         total_pmt = [['Year ' + str(i+1), total[i]] for i in range(len(total))]
         data['total_pmt'] = total_pmt
 
+        df_pmt = df_detail[['year', 'pmt', 'prop_tax', 'maint', 'pmi', 'total']]
+        df_pmt = df_pmt.groupby('year').mean()
+        d = df_pmt.transpose().values.tolist()
+        for i in range(len(d)):
+            for j in range(len(d[i])):
+                d[i][j] = '{:,.0f}'.format(d[i][j])
+        data['pmt_detail'] = d
+
     return render_template('mortgage_analysis.html', data=data)
 
 @app.route('/mortgage_comparison') 

@@ -6,14 +6,16 @@
 
 {% block sidebar %}
 
-    <p><a href={{url_for('mortgage_analysis')}}>Mortgage Analysis</a></p>
-    <p><a href={{url_for('mortgage_comparison')}}>Comparison</a></p>
-    <p><a href={{url_for('data_analysis')}}>Data Analysis</a></p>
+    <a href={{url_for('mortgage_analysis')}}>Mortgage Analysis</a></p>
+    <a href={{url_for('mortgage_comparison')}}>Comparison</a></p>
+    <a href={{url_for('data_analysis')}}>Data Analysis</a></p>
 
 {% endblock sidebar %}
 
 {% block main %}
+
 <script>
+
 function line_graph(data, element, title) {
 
     data.forEach(function(d) {
@@ -21,8 +23,6 @@ function line_graph(data, element, title) {
     d.date = new Date(+year, +month-1, +day)
     })    
     
-    //var m = {top: 30, bottom: 30, left: w*.01, right: w*.01}
-    //var w = +d3.select('.main').style('width').slice(0, -2) * .9 - m.left - m.right
     var m = {top: 30, bottom: 30, left: 40, right: 30}
     var w = 700 - m.left - m.right
     var h = 200 - m.top - m.bottom

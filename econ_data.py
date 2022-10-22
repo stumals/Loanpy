@@ -426,15 +426,3 @@ def pmt_df(df_price, df_rate):
     df_pmt = df_pmt.loc[:,['date', 'pmt']]
 
     return df_pmt
-#%%
-
-d = EconData(start_date='2012-01-01')
-d.mortgage_rates()
-df_rate = d.df.reset_index().iloc[:,:2]
-
-d = EconData(start_date='2012-01-01')
-d.home_price()
-df_price = d.df.reset_index().iloc[:,[0,-1]]
-# %%
-pmt_df(df_price, df_rate)
-# %%

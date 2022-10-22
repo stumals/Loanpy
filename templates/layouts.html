@@ -15,9 +15,10 @@
     {% endblock page_title %}
     <div class="outer-container">
       <div class="sidenav">
-        <p><a href={{url_for('home')}}>Return to home page</a></p>
+        <nav>
+        <a href={{url_for('home')}}>Return to home page</a></p>
         {% block sidebar %}
-        
+        </nav>
         {% endblock %}
       </div>
       

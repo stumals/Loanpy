@@ -1,5 +1,6 @@
 #%%
 #from crypt import methods
+import re
 from flask import Flask, render_template, url_for, request
 from loanpy import Loan
 import econ_data as ed
@@ -43,9 +44,78 @@ def home():
 
     return render_template('home.html', data=data)
 
-@app.route('/mortgage_analysis') 
+@app.route('/mortgage_analysis', methods=['GET', 'POST']) 
 def mortgage_analysis():
-    return render_template('mortgage_analysis.html')
+    data = {}
+    if request.method == 'POST':
+        #form_data = request.form
+        form_data = {}
+
+        if request.form['amount'] == '': form_data['amount'] = 400000
+        else: form_data['amount'] = request.form['amount']
+        if request.form['rate'] == '': form_data['rate'] = .05
+        else: form_data['rate'] = request.form['rate']
+        if request.form['num_years'] == '': form_data['num_years'] = 30
+        else: form_data['num_years'] = request.form['num_years']
+        if request.form['pmt_freq'] == '': form_data['pmt_freq'] = 12
+        else: form_data['pmt_freq'] = request.form['pmt_freq']
+        if request.form['down_pmt'] == '': form_data['down_pmt'] = 0
+        else: form_data['down_pmt'] = request.form['down_pmt']
+        if request.form['closing_cost'] == '': form_data['closing_cost'] = 0
+        else: form_data['closing_cost'] = request.form['closing_cost']
+        if request.form['maint_rate'] == '': form_data['maint_rate'] = .01
+        else: form_data['maint_rate'] = request.form['maint_rate']
+        if request.form['prop_tax_rate'] == '': form_data['prop_tax_rate'] = .01
+        else: form_data['prop_tax_rate'] = request.form['prop_tax_rate']
+        if request.form['pmi_rate'] == '': form_data['pmi_rate'] = .01
+        else: form_data['pmi_rate'] = request.form['pmi_rate']
+        if request.form['home_value_appreciation'] == '': form_data['home_value_appreciation'] = .03
+        else: form_data['home_value_appreciation'] = request.form['home_value_appreciation']
+        if request.form['home_sale_percent'] == '': form_data['home_sale_percent'] = .1
+        else: form_data['home_sale_percent'] = request.form['home_sale_percent']
+
+        if request.form['closing_cost_finance'] == 'Yes':
+            closing_cost_finance = True
+        else:
+            closing_cost_finance = False
+        l = Loan(float(form_data['amount']), float(form_data['rate']), int(form_data['num_years']), pmt_freq=int(form_data['pmt_freq']),
+                down_pmt=float(form_data['down_pmt']), closing_cost=float(form_data['closing_cost']), closing_cost_finance=closing_cost_finance, 
+                prop_tax_rate=float(form_data['prop_tax_rate']), pmi_rate=float(form_data['pmi_rate']), 
+                maint_rate=float(form_data['maint_rate']), home_value_appreciation=float(form_data['home_value_appreciation']),
+                home_sale_percent=float(form_data['home_sale_percent']))
+        data['start_val'] = l.asset_start_value
+        data['down_pmt'] = l.down_pmt * l.asset_start_value
+        if l.closing_cost_finance:
+            data['closing_cost'] = l.closing_cost
+        else:
+            data['closing_cost'] = 0
+        data['pmt'] = l.pmt
+        data['amt'] = l.amt
+        data['rate'] = l.rate_annual
+        data['num_years'] = l.num_years
+
+        df_detail = l.amort_table_detail()
+        year_5 = df_detail[df_detail['period']==60].loc[:,'home_sale_net'].at[59]
+        year_10 = df_detail[df_detail['period']==120].loc[:,'home_sale_net'].at[119]
+        year_15 = df_detail[df_detail['period']==180].loc[:,'home_sale_net'].at[179]
+
+        data['summary_info'] = []
+        data['summary_info'].append(['Asset Value:', '{:,.0f}'.format(l.asset_start_value)])
+        data['summary_info'].append(['Down Payment (-)', '{:,.0f}'.format(l.down_pmt * l.asset_start_value)])
+        data['summary_info'].append(['Closing Cost +', '{:,.0f}'.format(l.closing_cost)])
+        data['summary_info'].append(['Loan Amount =', '{:,.0f}'.format(l.asset_start_value - l.down_pmt * l.asset_start_value + l.closing_cost)])
+        data['summary_info'].append(['Rate:', '{:.2f}'.format(l.rate_annual)])
+        data['summary_info'].append(['Mortgage Payment:', '{:,.0f}'.format(l.pmt)])
+        data['summary_info'].append(['Year 5 P/L at {:.2f} annual appreciation:'.format(float(form_data['home_value_appreciation'])), '{:,.0f}'.format(year_5)])
+        data['summary_info'].append(['Year 10 P/L at {:.2f} annual appreciation:'.format(float(form_data['home_value_appreciation'])), '{:,.0f}'.format(year_10)])
+        data['summary_info'].append(['Year 15 P/L at {:.2f} annual appreciation:'.format(float(form_data['home_value_appreciation'])), '{:,.0f}'.format(year_15)])
+
+        df_detail['total'] = df_detail[['pmt', 'pmi', 'prop_tax', 'maint']].sum(axis=1)
+        total = df_detail[['year', 'total']].groupby('year').mean().loc[:,'total'].to_list()
+        total_pmt = [['Year ' + str(i+1), total[i]] for i in range(len(total))]
+        data['total_pmt'] = total_pmt
+
+    return render_template('mortgage_analysis.html', data=data)
 
 @app.route('/mortgage_comparison') 
 def mortgage_comparison():  

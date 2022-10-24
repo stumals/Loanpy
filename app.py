@@ -71,7 +71,7 @@ def mortgage_analysis():
         else: form_data['pmi_rate'] = request.form['pmi_rate']
         if request.form['home_value_appreciation'] == '': form_data['home_value_appreciation'] = .03
         else: form_data['home_value_appreciation'] = request.form['home_value_appreciation']
-        if request.form['home_sale_percent'] == '': form_data['home_sale_percent'] = .1
+        if request.form['home_sale_percent'] == '': form_data['home_sale_percent'] = .06
         else: form_data['home_sale_percent'] = request.form['home_sale_percent']
 
         if request.form['closing_cost_finance'] == 'Yes':
@@ -95,9 +95,9 @@ def mortgage_analysis():
         data['num_years'] = l.num_years
 
         df_detail = l.amort_table_detail()
-        year_5 = df_detail[df_detail['period']==60].loc[:,'home_sale_net'].at[59]
-        year_10 = df_detail[df_detail['period']==120].loc[:,'home_sale_net'].at[119]
-        year_15 = df_detail[df_detail['period']==180].loc[:,'home_sale_net'].at[179]
+        #year_5 = df_detail[df_detail['period']==60].loc[:,'home_sale_net'].at[59]
+        #year_10 = df_detail[df_detail['period']==120].loc[:,'home_sale_net'].at[119]
+        #year_15 = df_detail[df_detail['period']==180].loc[:,'home_sale_net'].at[179]
 
         data['summary_info'] = []
         data['summary_info'].append(['Asset Value:', '{:,.0f}'.format(l.asset_start_value)])
@@ -106,9 +106,9 @@ def mortgage_analysis():
         data['summary_info'].append(['Loan Amount =', '{:,.0f}'.format(l.asset_start_value - l.down_pmt * l.asset_start_value + l.closing_cost)])
         data['summary_info'].append(['Rate:', '{:.2f}'.format(l.rate_annual)])
         data['summary_info'].append(['Mortgage Payment:', '{:,.0f}'.format(l.pmt)])
-        data['summary_info'].append(['Year 5 P/L at {:.2f} annual appreciation:'.format(float(form_data['home_value_appreciation'])), '{:,.0f}'.format(year_5)])
-        data['summary_info'].append(['Year 10 P/L at {:.2f} annual appreciation:'.format(float(form_data['home_value_appreciation'])), '{:,.0f}'.format(year_10)])
-        data['summary_info'].append(['Year 15 P/L at {:.2f} annual appreciation:'.format(float(form_data['home_value_appreciation'])), '{:,.0f}'.format(year_15)])
+        #data['summary_info'].append(['Year 5 P/L at {:.2f} annual appreciation:'.format(float(form_data['home_value_appreciation'])), '{:,.0f}'.format(year_5)])
+        #data['summary_info'].append(['Year 10 P/L at {:.2f} annual appreciation:'.format(float(form_data['home_value_appreciation'])), '{:,.0f}'.format(year_10)])
+        #data['summary_info'].append(['Year 15 P/L at {:.2f} annual appreciation:'.format(float(form_data['home_value_appreciation'])), '{:,.0f}'.format(year_15)])
 
         df_detail['total'] = df_detail[['pmt', 'pmi', 'prop_tax', 'maint']].sum(axis=1)
         total = df_detail[['year', 'total']].groupby('year').mean().loc[:,'total'].to_list()
@@ -122,6 +122,21 @@ def mortgage_analysis():
             for j in range(len(d[i])):
                 d[i][j] = '{:,.0f}'.format(d[i][j])
         data['pmt_detail'] = d
+
+        data['profit'] = l.profit_loss_summary(monthly=False, expand=True).iloc[:15,-1].to_list()
+
+        row_headers = l.profit_loss_summary(monthly=False, expand=True).transpose().iloc[:,:15].index.tolist()
+        data_values = l.profit_loss_summary(monthly=False, expand=True).transpose().iloc[:,:15].values.tolist()
+        for i in range(len(data_values)):
+            for j in range(len(data_values[i])):
+                data_values[i][j] = '{:,.0f}'.format(data_values[i][j])
+        for i in range(len(data_values)):
+            data_values[i].insert(0, row_headers[i])
+        data['profit_detail'] = data_values
+        h = l.profit_loss_summary(monthly=False, expand=True).transpose().iloc[:,:15].columns.tolist()
+        h_year = ['Year ' + str(i) for i in h]
+        h_year.insert(0, 'Profit Detail')
+        data['profit_detail_headers'] = h_year
 
     return render_template('mortgage_analysis.html', data=data)
 

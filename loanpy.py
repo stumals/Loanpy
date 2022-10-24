@@ -1,8 +1,9 @@
+#%%
 import numpy as np
 import numpy_financial as npf
 import pandas as pd
 import matplotlib.pyplot as plt
-
+#%%
 class Loan():
     '''
     Framework for generating and analyzing mortgage amortization data
@@ -24,7 +25,7 @@ class Loan():
     '''
     def __init__(self, asset_amt, rate_annual, num_years, pmt_freq=12, down_pmt=0.0, closing_cost=0,
                  closing_cost_finance=False, prop_tax_rate=.01, pmi_rate=.01, maint_rate=.01,
-                 home_value_appreciation=.03, home_sale_percent=.1):
+                 home_value_appreciation=.03, home_sale_percent=.06):
        
         assert asset_amt > 0, 'asset_amt must be greater than 0'
         assert rate_annual > 0 and rate_annual < 1, 'rate_annual must be between 0 and 1'
@@ -110,7 +111,7 @@ class Loan():
 
         Table columns - period, year, beg_bal, pmt, principal, interest, end_bal, home_value,
         ltv_ratio, home_equity, pmi, prop_tax, maint, closing_costs, home_sale_cost,
-        cumulative_costs, all_in_pmts, home_sale_net        
+        cumulative_costs, all_in_pmts, home_sale_net, investment, cumulative_investment, down_pmt        
         '''
         df = self.amort_table()
         
@@ -138,32 +139,48 @@ class Loan():
         df_maint = df_maint.rename(columns={'home_value':'maint'})
         df = df.merge(df_maint, how='left', left_on='year', right_index=True)
         
+        # closing cost
         if not self.closing_cost_finance:
             closing_costs = np.array([0]*self.nper)
             closing_costs[0] = self.closing_cost
             df['closing_costs'] = closing_costs
         else:
             df['closing_costs'] = 0
+
         
         # cost of selling house (fees to 3rd parties)
-        df['home_sale_cost'] = df['home_equity'] * self.home_sale_percent    
+        df['home_sale_cost'] = df['home_value'] * self.home_sale_percent    
         
         # cumulative costs
         costs = df['interest'] + df['pmi'] + df['prop_tax'] + df['maint'] + df['closing_costs']
         df['cumulative_costs'] = costs.cumsum()
         
-        # all_in_pmts - used in rent vs buy analysis
+        # all_in_pmts - used in rent vs buy analysis and profit calc
         df['all_in_pmts'] = df[['pmt', 'pmi', 'prop_tax', 'maint', 'closing_costs']].sum(axis=1)
         d_pmt = np.array([0]*self.nper)
         d_pmt[0] = (self.asset_start_value * self.down_pmt)
         df['down_pmt'] = d_pmt
         df['all_in_pmts'] = df['all_in_pmts'] + df['down_pmt']
-        df = df.drop(columns='down_pmt')
+
+        # investment - principal plus down payment
+        df['investment'] = df['principal'] + df['down_pmt']
+        df['cumulative_investment'] = df['investment'].cumsum()
+        df['investment_gains'] = df['home_equity'] - df['cumulative_investment']
         
         # profit_loss on home sale calc - home_equity less home_sale_percent minus cumulative_costs (property tax, pmi, etc.)
-        df['home_sale_net'] = (df['home_equity'] - df['home_sale_cost']) - df['cumulative_costs']
+        df['home_sale_net'] = df['home_equity'] - df['home_sale_cost'] - df['cumulative_costs']
+        df['profit'] = df['home_sale_net'] - df['investment_gains']
+
         
         return df
+    
+    def expected_value_cagr(self, end_value, years):
+        '''
+        Utility function to provide Constant Annual Growth Rate (CAGR) needed to acheive end_value
+        '''
+        start_value = self.asset_start_value
+        cagr = (end_value/start_value)**(1/years) - 1
+        return cagr
 
     def plot_debt_vs_equity(self):
         '''
@@ -241,26 +258,49 @@ class Loan():
         plt.ylabel('Payment');
         plt.title('Monthly Total Payment by Year');
     
-    def profit_loss_summary(self, monthly=True, expand=False):
+    def profit_loss_summary(self, monthly=False, expand=True):
         '''
         Returns a dataframe showing the net profit of the home loan over each year
         '''
         df = self.amort_table_detail()
-        df = df[['period', 'year', 'interest', 'pmi', 'prop_tax', 'maint', 'closing_costs', 'home_sale_cost', 
-                 'cumulative_costs', 'home_equity', 'principal']]
-        df['cost_total'] = df[['cumulative_costs', 'home_sale_cost']].sum(axis=1)
-        #df['investment'] = df['principal'].cumsum() + np.array([self.asset_start_value*self.down_pmt]*df.shape[0]) 
-        df['profit'] = df['home_equity'] - df['cumulative_costs']
+        df = df[['period', 'year', 'interest', 'pmi', 'prop_tax', 'maint', 'closing_costs', 
+                 'principal', 'down_pmt']]
+        # cumulative_costs, cost_total, cumulative_investment, home_equity, investment_gains, profit
         if monthly:
             df = df.drop(columns='year')
+            df = df.cumsum()
+            df['period'] = self.amort_table_detail()['period']
+            df['home_sale_cost'] = self.amort_table_detail()['home_sale_cost']
+            df['cost_total'] = df['interest'] + df['pmi'] + df['prop_tax'] + df['maint'] + df['closing_costs']  + df['home_sale_cost']
+            df['investment_total'] = df['principal'] + df['down_pmt']
+            df['home_equity'] = self.amort_table_detail()['home_equity']
+            df['investment_gains'] = df['home_equity'] - df['investment_total']
+            df['profit'] = df['investment_gains'] - df['cost_total']
+            df = df[['period', 'interest', 'pmi', 'prop_tax', 'maint', 'closing_costs', 'home_sale_cost', 
+                    'cost_total', 'principal', 'down_pmt', 'investment_total', 'home_equity', 
+                    'investment_gains', 'profit']]
         else:
             df = df.drop(columns='period')
             df = df.groupby('year').sum()
+            df = df.cumsum()
+            home_sale_cost = self.amort_table_detail()[['year', 'home_sale_cost']].groupby('year').max()
+            df['home_sale_cost'] = home_sale_cost
+            df['cost_total'] = df['interest'] + df['pmi'] + df['prop_tax'] + df['maint'] + df['closing_costs'] + df['home_sale_cost']
+            df['investment_total'] = df['principal'] + df['down_pmt']
+            home_equity = self.amort_table_detail()[['year', 'home_equity']].groupby('year').max()
+            df['home_equity'] = home_equity
+            df['investment_gains'] = df['home_equity'] - df['investment_total']
+            df['profit'] = df['investment_gains'] - df['cost_total']
+            df = df[['interest', 'pmi', 'prop_tax', 'maint', 'closing_costs', 'home_sale_cost', 
+                    'cost_total', 'principal', 'down_pmt', 'investment_total', 'home_equity', 
+                    'investment_gains', 'profit']]
+
         if expand:
             return df
         else:
-            return df[['home_equity', 'cost_total', 'profit']]
-    
+            #return df[['home_equity', 'cumulative_investment', 'investment_gains', 'cost_total', 'profit']]
+            return df
+
     def pmt_matrix(self, bins=10, amt_incrmt=10000, rate_incrmt=.0025, variance=False):
         '''
         Returns matrix of how payment changes with increasing/decreasing inital asset amount and rate
@@ -440,3 +480,5 @@ def plot_comparison(option_a, option_b):
     plt.xlabel('Year');
     plt.ylabel('Return $');
     plt.legend();
+
+# %%

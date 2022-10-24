@@ -10,47 +10,47 @@
     <table>
         <tr class="input_row">    
             <td><label class="input_field" for="amount">Amount: </label></td>
-            <td><input type="number" id="amount" name="amount" placeholder="400000" step="10000"></td>
+            <td><input type="number" id="amount" name="amount" placeholder="400000" step="10000" min="0"></td>
         </tr>
         <tr class="input_row">
             <td><label class="input_field" for="rate">Rate: </label></td>
-            <td><input type="number" id="rate" name="rate" placeholder=".05" step=".01"></td>
+            <td><input type="number" id="rate" name="rate" placeholder=".05" step=".005" min="0"></td>
         </tr>
         <tr class="input_row">
             <td><label class="input_field" for="num_years">Years: </label></td>
-            <td><input type="number" id="num_years" name="num_years", placeholder="30"></td>
+            <td><input type="number" id="num_years" name="num_years", placeholder="30" min="0"></td>
         </tr>
         <tr class="input_row">
             <td><label class="input_field" for="pmt_freq">Frequency: </label></td>
-            <td><input type="number" id="pmt_freq" name="pmt_freq", placeholder="12"></td>
+            <td><input type="number" id="pmt_freq" name="pmt_freq", placeholder="12" min="0"></td>
         </tr>
         <tr class="input_row">
             <td><label class="input_field" for="down_pmt">Down Payment %: </label></td>
-            <td><input type="number" id="down_pmt" name="down_pmt", placeholder="0", step=".01"></td>
+            <td><input type="number" id="down_pmt" name="down_pmt", placeholder="0", step=".005" min="0"></td>
         </tr>
         <tr class="input_row">
             <td><label class="input_field" for="closing_cost">Closing Cost $: </label></td>
-            <td><input type="number" id="closing_cost" name="closing_cost", placeholder="0", step="1000"></td>
+            <td><input type="number" id="closing_cost" name="closing_cost", placeholder="0", step="1000" min="0"></td>
         </tr>
         <tr class="input_row">
             <td><label class="input_field" for="prop_tax_rate">Property Tax Rate: </label></td>
-            <td><input type="number" id="prop_tax_rate" name="prop_tax_rate", placeholder=".01", step=".01"></td>
+            <td><input type="number" id="prop_tax_rate" name="prop_tax_rate", placeholder=".01", step=".005" min="0"></td>
         </tr>
         <tr class="input_row">
             <td><label class="input_field" for="pmi_rate">PMI Rate: </label></td>
-            <td><input type="number" id="pmi_rate" name="pmi_rate", placeholder=".01", step=".01"></td>
+            <td><input type="number" id="pmi_rate" name="pmi_rate", placeholder=".01", step=".005" min="0"></td>
         </tr>
         <tr class="input_row">
             <td><label class="input_field" for="maint_rate">Maintenance Rate: </label></td>
-            <td><input type="number" id="maint_rate" name="maint_rate", placeholder=".01", step=".01"></td>
+            <td><input type="number" id="maint_rate" name="maint_rate", placeholder=".01", step=".005" min="0"></td>
         </tr>
         <tr class="input_row">
             <td><label class="input_field" for="home_value_appreciation">Appreciation Rate: </label></td>
-            <td><input type="number" id="home_value_appreciation" name="home_value_appreciation", placeholder=".03", step=".01"></td>
+            <td><input type="number" id="home_value_appreciation" name="home_value_appreciation", placeholder=".03", step=".005" min="0"></td>
         </tr>
         <tr class="input_row">
             <td><label class="input_field" for="home_sale_percent">Sale Percent: </label></td>
-            <td><input type="number" id="home_sale_percent" name="home_sale_percent", placeholder=".1", step=".01"></td>
+            <td><input type="number" id="home_sale_percent" name="home_sale_percent", placeholder=".06", step=".005" min="0"></td>
         </tr>
         <tr class="input_row">
             <td><label class="input_field" for="closing_cost_finance">Finance Closing Cost: </label></td>
@@ -149,7 +149,56 @@
             .attr("x", w/2)
             .attr("y", m.top*.01)
             .text("Total Monthly Payment by Year");
+    }
 
+    function line_graph(data, element, title, color) {
+        
+        var m = {top: 30, bottom: 30, left: 50, right: 30}
+        var w = 700 - m.left - m.right
+        var h = 200 - m.top - m.bottom
+
+        var xScale = d3.scaleLinear().range([0, w])
+        var yScale = d3.scaleLinear().range([h, 0])
+
+        const line = d3.line()
+            .x(function(d) { return xScale(d.year); })
+            .y(function(d) { return yScale(d.value); });
+
+        const yaxis = d3.axisLeft().scale(yScale);
+        const xaxis = d3.axisBottom().scale(xScale);
+
+        var [ymin, ymax] = d3.extent(data, function(d) { return d.value; }) 
+
+        xScale.domain(d3.extent(data, function(d) { return d.year; }));
+        yScale.domain([ymin, ymax])
+
+        var svg = d3.select('.main').append('svg')
+            .attr('width', w + m.left + m.right)
+            .attr('height', h + m.top + m.bottom)
+            .attr('class', 'line_chart')
+            .append('g')
+            .attr('id', element)
+            .attr('transform', 'translate(' + m.left + ',' + m.top + ')')
+
+        d3.select('#' + element).append("g")
+            .attr("transform", "translate(0," + h + ")")
+            .call(xaxis)
+            
+        d3.select('#' + element).append("g")
+            .call(yaxis)
+
+        d3.select('#' + element).append('path')
+            .datum(data)
+            .attr('d', line)
+            .attr("fill", "none")
+            .attr("stroke", color)
+            .attr("stroke-width", 1.5)
+        if (title != '') {
+            d3.select('#' + element).append('text')
+                .text(title)
+                .attr('x', w/2.5)
+                .attr('y', m.top/4)
+        }
     }
 
 // ----------------------------------------------------------------
@@ -168,7 +217,7 @@
     }
     
     create_pmt_bar(data_pmt)
-
+// ----- get data for payment detail table ----
     var data_pmt = {{ data['pmt_detail'] | safe }}
     data_pmt_15 = []
     row_headers = ['Mortgage Payment  ', 'Property Tax  ', 'Maintenance  ', 'PMI  ', 'Total  ']
@@ -185,11 +234,31 @@
         var h = 'Year ' + (i+1)
         headers_pmt_detail.push(h)
     }
-    console.log(headers_pmt_detail)
-    console.log(data_pmt_15)
 
     create_table(data_pmt_15, 'table_pmt_detail', headers_pmt_detail)
 
+
+
+// -------------- profit line graph data ---------------
+
+    var data_profit = {{ data['profit'] | safe }}
+    profit = []
+    for (let i=0; i<data_profit.length; i++) {
+        row = {}
+        row['year'] = i+1
+        row['value'] = data_profit[i]
+        profit.push(row)
+    }
+
+    line_graph(profit, 'profit_line', 'Cumulative Profit by Year', 'blue')
+// -------------- profit table data ---------------
+
+    var data_profit_detail = {{ data['profit_detail'] | safe }}
+    var data_profit_headers = {{ data['profit_detail_headers'] | safe }}
+
+    create_table(data_profit_detail, 'table_profit_detail', data_profit_headers)
+    console.log(data_profit_detail)
+    console.log(data_profit_headers)
 
 
 </script>

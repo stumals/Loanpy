@@ -81,6 +81,14 @@
     background-color: rgba(150, 212, 212, 0.4);
   }
 
+  #table_profit_detail tr:nth-child(even) {
+    background-color: rgba(150, 212, 212, 0.4);
+  }
+
+  #table_profit_detail th:nth-child(even), #table_pmt_detail td:nth-child(even) {
+    background-color: rgba(150, 212, 212, 0.4);
+  }
+
   th {
     font-size: smaller;
   }

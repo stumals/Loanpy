@@ -56,8 +56,8 @@
             <td><label class="input_field" for="closing_cost_finance">Finance Closing Cost: </label></td>
             <td>
                 <select id="closing_cost_finance", name="closing_cost_finance">
-                    <option value="No" selected>No</option>
-                    <option value="Yes">Yes</option>
+                    <option value="No">No</option>
+                    <option value="Yes" selected>Yes</option>
                 </select>
             </td>
         </tr>
@@ -148,7 +148,7 @@
             .attr("text-anchor", "middle")
             .attr("x", w/2)
             .attr("y", m.top*.01)
-            .text("Total Monthly Payment by Year");
+            .text("Avg Total Monthly Payment by Year");
     }
 
     function line_graph(data, element, title, color) {
@@ -202,12 +202,13 @@
     }
 
 // ----------------------------------------------------------------
+    num_years = 15
 
     var data_table = {{ data['summary_info'] | safe }}
-    create_table(data_table, 'table_loan_info', ['Loan Info', 'Values'])
+    create_table(data_table, 'table_loan_info', ['Loan Info', 'Values', 'Attributes', 'Values'])
 
     var data_list = {{ data['total_pmt'] | safe }}
-    data_list = data_list.slice(0,15)
+    data_list = data_list.slice(0,num_years)
     data_pmt = []
     for (let i=0; i<data_list.length; i++) {
         row = {}
@@ -223,14 +224,14 @@
     row_headers = ['Mortgage Payment  ', 'Property Tax  ', 'Maintenance  ', 'PMI  ', 'Total  ']
     for (let i=0; i<data_pmt.length; i++) {
         var row = [row_headers[i]]
-        for (let j=0; j<15; j++) {
+        for (let j=0; j<num_years; j++) {
             row.push(data_pmt[i][j])    
         }
         data_pmt_15.push(row)
     }
 
     headers_pmt_detail = ['Payment Type  ']
-    for (let i=0; i<15; i++) {
+    for (let i=0; i<num_years; i++) {
         var h = 'Year ' + (i+1)
         headers_pmt_detail.push(h)
     }
@@ -243,7 +244,7 @@
 
     var data_profit = {{ data['profit'] | safe }}
     profit = []
-    for (let i=0; i<data_profit.length; i++) {
+    for (let i=0; i<num_years; i++) {
         row = {}
         row['year'] = i+1
         row['value'] = data_profit[i]

@@ -72,6 +72,9 @@
   #table_loan_info tr:nth-child(even) {
     background-color: rgba(150, 212, 212, 0.4);
   }
+  #table_loan_info th:nth-child(even), #table_loan_info td:nth-child(even) {
+    background-color: rgba(150, 212, 212, 0.4);
+  }
   
   #table_pmt_detail tr:nth-child(even) {
     background-color: rgba(150, 212, 212, 0.4);
@@ -92,3 +95,5 @@
   th {
     font-size: smaller;
   }
+
+  

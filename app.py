@@ -18,30 +18,27 @@ df.to_json(orient='records')
 #%%
 @app.route('/') 
 def home(): 
+    return render_template('home.html')
+
+@app.route('/calculations', methods=['GET', 'POST']) 
+def calculations():
     data = {}
-    d = ed.EconData(start_date='2012-01-01')
-    d.mortgage_rates()
-    df = d.df.reset_index().iloc[:,:2]
-    df_rate = df.copy()
-    df['date'] = df['date'].astype(str)
-    df = df.rename(columns={'30yr_FRM':'value'})
-    data['mort_rate'] = df.to_json(orient='records')
+    if request.method == 'POST':
+        if request.form['start'] == '': start = 400000.0
+        else: start = float(request.form['start']) 
+        if request.form['end'] == '': end = 600000.0
+        else: end = float(request.form['end']) 
+        if request.form['years'] == '': years = 10.0
+        else: years = float(request.form['years']) 
+        cagr = ((end/start)**(1/years) - 1)*100
+        
+        data['cagr_data'] = []
+        data['cagr_data'].append(['Start Value: ', '{:,.0f}'.format(start)])
+        data['cagr_data'].append(['End Value: ', '{:,.0f}'.format(end)])
+        data['cagr_data'].append(['Years: ', '{:,.0f}'.format(years)])
+        data['cagr_data'].append(['CAGR: ', '{:,.3f}'.format(cagr)])
 
-    d = ed.EconData(start_date='2012-01-01')
-    d.home_price()
-    df = d.df.reset_index().iloc[:,[0,-1]]
-    df_price = df.copy()
-    df['date'] = df['date'].astype(str)
-    df = df.rename(columns={'price_adj':'value'})
-    df['value'] = df['value'] / 1000
-    data['home_price'] = df.to_json(orient='records')
-
-    df_pmt = ed.pmt_df(df_price, df_rate)
-    df_pmt['date'] = df_pmt['date'].astype(str)
-    df_pmt = df_pmt.rename(columns={'pmt':'value'})
-    data['pmt'] = df_pmt.to_json(orient='records')
-
-    return render_template('home.html', data=data)
+    return render_template('calculations.html', data=data)
 
 @app.route('/mortgage_analysis', methods=['GET', 'POST']) 
 def mortgage_analysis():
@@ -141,10 +138,58 @@ def mortgage_comparison():
     return render_template('mortgage_comparison.html')
 
 @app.route('/data_analysis') 
-def data_analysis():  
-    return render_template('data_analysis.html')
+def data_analysis():
+    data = {}
+    d = ed.EconData(start_date='2012-01-01')
+    d.mortgage_rates()
+    df = d.df.reset_index().iloc[:,:2]
+    df_rate = df.copy()
+    df['date'] = df['date'].astype(str)
+    df = df.rename(columns={'30yr_FRM':'value'})
+    data['mort_rate'] = df.to_json(orient='records')
+
+    d = ed.EconData(start_date='2012-01-01')
+    d.home_price()
+    df = d.df.reset_index().iloc[:,[0,-1]]
+    df_price = df.copy()
+    df['date'] = df['date'].astype(str)
+    df = df.rename(columns={'price_adj':'value'})
+    df['value'] = df['value'] / 1000
+    data['home_price'] = df.to_json(orient='records')
+
+    df_pmt = ed.pmt_df(df_price, df_rate)
+    df_pmt['date'] = df_pmt['date'].astype(str)
+    df_pmt = df_pmt.rename(columns={'pmt':'value'})
+    data['pmt'] = df_pmt.to_json(orient='records')
+
+    d = ed.EconData(start_date='2012-01-01')
+    d.stock_data()
+    df = d.df.reset_index()
+    df_sp500 = df.copy()
+    df_sp500['date'] = df_sp500['date'].dt.strftime('%Y-%m-%d')
+    df_sp500['date'] = df_sp500['date'].astype(str)
+    df_sp500 = df_sp500.rename(columns={'SP500':'value'})
+    data['sp500'] = df_sp500.to_json(orient='records')
+
+    d = ed.EconData(start_date='2000-01-01')
+    d.money_supply()
+    df = d.df.reset_index()
+    df_m2 = df.copy()
+    df_m2['date'] = df_m2['date'].astype(str)
+    df_m2 = df_m2.rename(columns={'M2SL':'value'})
+    data['m2'] = df_m2.to_json(orient='records')
+
+    return render_template('data_analysis.html', data=data)
   
 if __name__ =='__main__':  
     app.run(debug = True)  
     
+# %%
+d = ed.EconData(start_date='2022-03-01')
+d.ustreasury_rates()
+d.df.head()
+# %%
+d = ed.EconData(start_date='2000-01-01')
+d.money_supply()
+d.df
 # %%

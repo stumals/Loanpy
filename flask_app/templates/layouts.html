@@ -1,0 +1,32 @@
+<!doctype html>
+<html>
+  <head>
+    {% block head %}
+    <link rel="stylesheet" href="/static/main.css">
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <script src="https://d3js.org/d3.v7.min.js"></script>
+    <title>Loanpy</title>
+    {% endblock %}
+  </head>
+  <body>
+    {% block page_title %}
+    
+    {% endblock page_title %}
+    <div class="outer-container">
+      <div class="sidenav">
+        <nav>
+        <a href={{url_for('home')}}>Return to home page</a></p>
+        {% block sidebar %}
+        </nav>
+        {% endblock %}
+      </div>
+      
+      <div class="main">
+        {% block main %}
+        
+        {% endblock %}
+      </div>
+  </div>
+  </body>
+</html>

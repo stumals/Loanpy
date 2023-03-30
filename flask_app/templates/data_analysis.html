@@ -1,0 +1,87 @@
+{% extends "layouts.html" %}
+
+{% block page_title %}
+<div class="page_title">Data Analysis</div>
+{% endblock page_title %}
+
+
+{% block main %}
+
+<script>
+
+    function line_graph(data, element, title) {
+
+        data.forEach(function(d) {
+        var [year, month, day] = d.date.split('-')
+        d.date = new Date(+year, +month-1, +day)
+        })    
+        
+        var m = {top: 30, bottom: 30, left: 40, right: 30}
+        var w = 700 - m.left - m.right
+        var h = 200 - m.top - m.bottom
+
+        var xScale = d3.scaleTime().range([0, w])
+        var yScale = d3.scaleLinear().range([h, 0])
+
+        const line = d3.line()
+            .x(function(d) { return xScale(d.date); })
+            .y(function(d) { return yScale(d.value); });
+
+        const yaxis = d3.axisLeft().scale(yScale);
+        const xaxis = d3.axisBottom().scale(xScale);
+
+        var [ymin, ymax] = d3.extent(data, function(d) { return d.value; }) 
+
+        xScale.domain(d3.extent(data, function(d) { return d.date; }));
+        yScale.domain([ymin*.8, ymax])
+        //yScale.domain(d3.extent(data, function(d) { return d.value; }));
+
+        var svg = d3.select('.main').append('svg')
+            .attr('width', w + m.left + m.right)
+            .attr('height', h + m.top + m.bottom)
+            .attr('class', 'line_chart')
+            .append('g')
+            .attr('id', element)
+            .attr('transform', 'translate(' + m.left + ',' + m.top + ')')
+
+        d3.select('#' + element).append("g")
+            .attr("transform", "translate(0," + h + ")")
+            .call(xaxis)
+            
+        d3.select('#' + element).append("g")
+            .call(yaxis)
+
+        d3.select('#' + element).append('path')
+            .datum(data)
+            .attr('d', line)
+            .attr("fill", "none")
+            .attr("stroke", 'blue')
+            .attr("stroke-width", 1.5)
+
+        d3.select('#' + element).append('text')
+            .text(title)
+            .attr("text-anchor", "middle")
+            .attr('x', w/2)
+            .attr('y', m.top/4)
+
+    }
+
+var data = {{ data['mort_rate']|safe }}
+line_graph(data, 'line-mort_rate', '30 Year Mortgage Rate')
+
+var data = {{ data['home_price']|safe }}
+line_graph(data, 'line-home_price', "Median Inflation Adj Home Price 000's")
+
+var data = {{ data['pmt']|safe }}
+line_graph(data, 'line-pmt', "Mortgage Payment")
+
+var data = {{ data['sp500']|safe }}
+line_graph(data, 'line-sp500', "S&P 500")
+
+var data = {{ data['m2']|safe }}
+line_graph(data, 'line-m2', "Money Supply - M2 (Billions)")
+
+console.log(data)
+
+</script>
+{% endblock main %}

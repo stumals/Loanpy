@@ -1,0 +1,60 @@
+{% extends "layouts.html" %}
+
+{% block page_title %}
+<div class="page_title">Calculations</div>
+{% endblock page_title %}
+
+{% block sidebar %}
+
+<form action="" id="loan_form" method="post">
+    <table>
+        <tr class="input_row">    
+            <td><label class="input_field" for="start">Start Value: </label></td>
+            <td><input type="number" id="start" name="start" placeholder="400000" step="10000" min="0"></td>
+        </tr>
+        <tr class="input_row">
+            <td><label class="input_field" for="end">End Value: </label></td>
+            <td><input type="number" id="end" name="end" placeholder="600000" step="10000" min="0"></td>
+        </tr>
+        <tr class="input_row">
+            <td><label class="input_field" for="years">Years: </label></td>
+            <td><input type="number" id="years" name="years", placeholder="10" step="1" min="0"></td>
+        </tr>
+    </table><br>
+    <input id="cagr_input" type="submit">
+</form>
+
+{% endblock sidebar %}
+
+{% block main %}
+
+<script>
+
+    function create_table(data, name, headers) {
+        d3.select('.main').append('table')
+            .attr('id', name)
+
+        d3.select('#' + name).selectAll('th')
+            .data(headers)
+            .enter()
+            .append('th')
+            .text(function(d){return d})
+
+        d3.select('#' + name).selectAll('tr')
+            .data(data)
+            .enter()
+            .append('tr')
+            .selectAll('td')
+            .data(function(d){return d})
+            .enter()
+            .append('td')
+            .text(function(d) {return d})
+    }
+
+    var data = {{ data['cagr_data'] | safe }}
+    create_table(data, 'cagr_info', ['Input', 'Values'])
+    console.log(data)
+
+</script>
+
+{% endblock main %}

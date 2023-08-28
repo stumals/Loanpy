@@ -4,100 +4,50 @@ import numpy_financial as npf
 import pandas as pd
 import matplotlib.pyplot as plt
 
+from loan_input import LoanInput
+
 #%%
 class Loan():
     '''
     API for generating and analyzing mortgage amortization data
-
-    Parameters
-    ----------
-    asset_amt : value of property to get loan for
-    rate_annual : annual rate of loan
-    num_years : number of years of loan
-    pmt_freq : number of payments per year
-    down_pmt : down payment percentage on loan
-    closing_cost : closing cost of loan
-    closing_cost_finance : boolean if the closing cost is financied through loan or not
-    prop_tax_rate : property tax rate
-    pmi_rate : private mortgage insurance rate
-    maint_rate : maintance rate
-    home_value_appreciation : annual appreciation rate of property
-    home_sale_percent : percent cost of sale of property
     '''
-    def __init__(self, asset_amt, rate_annual, num_years, pmt_freq=12, down_pmt=0.0, closing_cost=0,
-                 closing_cost_finance=False, prop_tax_rate=.01, pmi_rate=.01, maint_rate=.01,
-                 home_value_appreciation=.03, home_sale_percent=.06):
-       
-        assert asset_amt > 0, 'asset_amt must be greater than 0'
-        assert rate_annual > 0 and rate_annual < 1, 'rate_annual must be between 0 and 1'
-        assert down_pmt >= 0 and down_pmt < 1, 'down_pmt must be between 0 and 1'
-        assert closing_cost >= 0, 'closing_cost must be greater than 0'
-        assert type(closing_cost_finance)==bool, 'closing_cost_finance must be bool type'
-        assert prop_tax_rate >= 0 and prop_tax_rate < 1, 'prop_tax_rate must be between 0 and 1'
-        assert pmi_rate >= 0 and pmi_rate < 1, 'pmi_rate must be between 0 and 1'
-        assert maint_rate >= 0 and maint_rate < 1, 'maint_rate must be between 0 and 1'
-        assert home_value_appreciation >= 0 and home_value_appreciation < 1, 'home_value_appreciation must be between 0 and 1'
-        assert home_sale_percent >= 0 and home_sale_percent < 1, 'home_sale_percent must be between 0 and 1'
+    def __init__(self, loan_params: LoanInput):
 
-        self.asset_start_value = asset_amt
-        self.rate_annual = rate_annual
-        self.rate = rate_annual / pmt_freq
-        self.nper = num_years * pmt_freq
-        self.closing_cost = closing_cost
-        self.closing_cost_finance = closing_cost_finance
-        self.down_pmt = down_pmt
-        self.home_sale_percent = home_sale_percent
-        if closing_cost_finance:
-            self.amt = (asset_amt*(1-self.down_pmt)) + self.closing_cost
+        self.asset_start_value = loan_params.asset_amt
+        self.rate_annual = loan_params.rate_annual
+        self.rate = loan_params.rate_annual / loan_params.pmt_freq
+        self.nper = loan_params.num_years * loan_params.pmt_freq
+        self.closing_cost = loan_params.closing_cost
+        self.closing_cost_finance = loan_params.closing_cost_finance
+        self.down_pmt = loan_params.down_pmt
+        self.home_sale_percent = loan_params.home_sale_percent
+        if loan_params.closing_cost_finance:
+            self.amt = (self.asset_start_value*(1-self.down_pmt)) + self.closing_cost
         else:
-            self.amt = (asset_amt*(1-self.down_pmt))
+            self.amt = (self.asset_start_value*(1-self.down_pmt))
         self.pmt = -npf.pmt(self.rate, self.nper, self.amt)
-        self.num_years = num_years
-        self.pmt_freq = pmt_freq
-        self.tax = prop_tax_rate
-        self.pmi = pmi_rate
-        self.maint = maint_rate
-        self.appr_rate = home_value_appreciation
-        
-        # numpy arrays used in amortization calculation
-        self.periods = np.arange(1, self.nper + 1, dtype=int)
-        self.pmts = np.array([self.pmt] * self.nper)
-        self.interest = -npf.ipmt(self.rate, self.periods, self.nper, self.amt)
-        self.principal = -npf.ppmt(self.rate, self.periods, self.nper, self.amt)
+        self.num_years = loan_params.num_years
+        self.pmt_freq = loan_params.pmt_freq
+        self.tax = loan_params.prop_tax_rate
+        self.pmi = loan_params.pmi_rate
+        self.maint = loan_params.maint_rate
+        self.appr_rate = loan_params.home_value_appreciation
 
         # beg / end balance calculations used in amortization
         def balance(pv, rate, nper, pmt):
             d = (1 + rate) ** nper
             return pv * d - pmt*(d - 1)/rate
 
-        self.beg_bal = balance(self.amt, self.rate, self.periods - 1, self.pmt)
-        self.end_bal = balance(self.amt, self.rate, self.periods, self.pmt)
-
-    def get_attrs(self):
-        '''
-        Returns parameters used in loan instantiation
-        '''
-        d = self.__dict__
-        df = pd.DataFrame(index=d.keys(), data=d.values(), columns=['attributes'])
-        to_drop = ['pmts', 'periods', 'interest', 'principal', 'beg_bal', 'end_bal']
-        return df.drop(to_drop)
-    
-    def amort_table(self):
-        '''
-        Returns amortization table with number of periods equaling pmt_freq * num_years
-
-        Table columns - period, year, beg_bal, pmt, principal, interest, end_bal
-        '''
         df = pd.DataFrame()
-        df['period'] = self.periods
-        df['year'] = df['period'].apply(lambda x: x // self.pmt_freq if x % self.pmt_freq == 0 else x // self.pmt_freq + 1)
-        assert df['year'].iloc[-1] == self.num_years 
-        df['beg_bal'] = self.beg_bal
-        df['pmt'] = self.pmts
-        df['principal'] = self.principal
-        df['interest'] = self.interest
-        df['end_bal'] = self.end_bal
-        return df.round(2)
+        df['period'] = np.arange(1, self.nper + 1, dtype=int)
+        df['year'] = df['period'].apply(lambda x: x // self.pmt_freq if x % self.pmt_freq == 0 else x // self.pmt_freq + 1) 
+        df['beg_bal'] = balance(self.amt, self.rate, df['period'].to_numpy() - 1, self.pmt)
+        df['pmt'] = np.array([self.pmt] * self.nper)
+        df['principal'] = -npf.ppmt(self.rate, df['period'].to_numpy(), self.nper, self.amt)
+        df['interest'] = -npf.ipmt(self.rate, df['period'].to_numpy(), self.nper, self.amt)
+        df['end_bal'] = balance(self.amt, self.rate, df['period'].to_numpy(), self.pmt)
+        df = df.round(2)
+        self.amort_table = df
         
     def amort_table_detail(self):
         '''
@@ -109,7 +59,7 @@ class Loan():
 
         profit = home value at each period less cost to sell, cumulative costs, remaining loan balance        
         '''
-        df = self.amort_table()
+        df = self.amort_table
         
         # home value calc, appreciating by home_value_appreciation by pmt_freq per year
         df['home_value'] = self.asset_start_value * np.array([1+(self.appr_rate/self.pmt_freq)]*self.nper).cumprod()
@@ -169,7 +119,7 @@ class Loan():
         '''
         Plots the debt and equity curves of the loan amortization table - ending balance and cumulative principal
         '''
-        df = self.amort_table()
+        df = self.amort_table
         df['principal_total'] = df['principal'].cumsum()
 
         df2 = pd.DataFrame()

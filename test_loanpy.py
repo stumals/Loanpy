@@ -1,4 +1,4 @@
-from loanpy import Loan
+from loan.core import Loan
 import pytest
 import numpy as np
 
@@ -26,6 +26,16 @@ def test_amort_len(loan_data):
        ==len(loan_data[0].end_bal)==loan_data[0].nper, "Calculated arrays DO NOT all equal number of periods"
     assert len(loan_data[1].periods)==len(loan_data[1].pmts)==len(loan_data[1].interest)==len(loan_data[1].principal)==len(loan_data[1].beg_bal) \
        ==len(loan_data[1].end_bal)==loan_data[1].nper, "Calculated arrays DO NOT all equal number of periods"
+    
+def test_loan_to_value_ratio(loan_data):
+    df = loan_data[0].amort_table_detail()
+    assert np.allclose(df['ltv_ratio'].iloc[-1], 0), "Loan to Value ratio after last payment DOES NOT equal 0.0"
+
+def test_home_equity_vs_home_value(loan_data):
+    df = loan_data[0].amort_table_detail()
+    assert df['home_equity'].iloc[-1] == df['home_value'].iloc[-1], "home_equity DOES NOT equal home_value at end of loan"
+
+
 
 
 

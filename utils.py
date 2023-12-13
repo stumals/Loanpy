@@ -1,6 +1,6 @@
 import pandas as pd
 import numpy as np
-from core import Loan
+from loan.core import Loan
 import matplotlib.pyplot as plt
 
 
@@ -44,23 +44,23 @@ def rent_vs_buy(loan, rent_start, time_years=10, rent_growth=.05, market_returns
     df_rent['diff'] = df['all_in_pmts'] - df_rent['rent']
     df_rent['diff'] = df_rent['diff'].apply(lambda x: x if x > 0 else 0)
 
-    df['investment'] = df['diff'].cumsum() * np.array([1+(market_returns/loan.pmt_freq)]*loan.nper).cumprod()
+    df['market_returns'] = df['diff'].cumsum() * np.array([1+(market_returns/loan.pmt_freq)]*loan.nper).cumprod()
     df['diff_cumulative'] = df['diff'].cumsum()
-    df['cap_gains_cumulative'] = df['investment'] - df['diff_cumulative']
+    df['cap_gains_cumulative'] = df['market_returns'] - df['diff_cumulative']
     df['cap_gains_tax'] = df['cap_gains_cumulative'] * cap_gains_tax
-    df['investment_net'] = df['investment'] - df['cap_gains_tax']
-    df['return_total'] = df['investment_net'] + df['home_sale_net']
+    df['returns_net'] = df['market_returns'] - df['cap_gains_tax']
+    df['return_total'] = df['returns_net'] + df['profit']
 
-    df_rent['investment'] = df_rent['diff'].cumsum() * np.array([1+(market_returns/loan.pmt_freq)]*loan.nper).cumprod()
+    df_rent['market_returns'] = df_rent['diff'].cumsum() * np.array([1+(market_returns/loan.pmt_freq)]*loan.nper).cumprod()
     df_rent['diff_cumulative'] = df_rent['diff'].cumsum()
-    df_rent['cap_gains_cumulative'] = df_rent['investment'] - df_rent['diff_cumulative']
+    df_rent['cap_gains_cumulative'] = df_rent['market_returns'] - df_rent['diff_cumulative']
     df_rent['cap_gains_tax'] = df_rent['cap_gains_cumulative'] * cap_gains_tax
-    df_rent['investment_net'] = df_rent['investment'] - df_rent['cap_gains_tax']
-    df_rent['rent_cumulative'] = -df_rent['rent'].cumsum()
-    df_rent['return_total'] = df_rent['investment_net'] + df_rent['rent_cumulative']
+    df_rent['returns_net'] = df_rent['market_returns'] - df_rent['cap_gains_tax']
+    df_rent['rent_cumulative'] = df_rent['rent'].cumsum()
+    df_rent['return_total'] = df_rent['returns_net'] - df_rent['rent_cumulative']
 
-    cols_df = ['year', 'home_sale_net', 'investment_net', 'return_total']
-    cols_rent = ['year', 'rent_cumulative', 'investment_net', 'return_total']
+    cols_df = ['year', 'profit', 'returns_net', 'return_total']
+    cols_rent = ['year', 'rent_cumulative', 'returns_net', 'return_total']
 
     df_year = df.loc[:, cols_df].groupby('year').max()
     df_rent_year = df_rent.loc[:, cols_rent].groupby('year').max()
@@ -135,7 +135,7 @@ def plot_comparison(option_a, option_b):
     plt.plot(option_a['return_total'], label='Option A');
     plt.plot(option_b['return_total'], label='Option B');
     plt.xlim(1, option_a.shape[0]);
-    plt.xlabel('Year');
+    plt.xlabel('Period');
     plt.ylabel('Return $');
     plt.legend();
 

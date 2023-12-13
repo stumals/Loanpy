@@ -2,7 +2,7 @@ from pydantic import BaseModel, confloat, conint
 
 class LoanInput(BaseModel):
     '''
-    Parameters for core.Loan class
+    Parameters for loan.core.Loan class
 
     asset_amt : value of property to get loan for
     rate_annual : annual rate of loan

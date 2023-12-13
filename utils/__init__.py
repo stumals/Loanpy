@@ -1,0 +1,1 @@
+from .npf_amort import amort

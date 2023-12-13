@@ -1,46 +1,40 @@
-#%%
 import streamlit as st
-import altair as alt
 import pandas as pd
+import numpy as np
+import matplotlib.pyplot as plt
 
-from core import Loan
-from utils import expected_value_cagr, rent_vs_buy
-#%%
-st.write('''
-        # Rent vs Buy
-        ''')
+# Create a sidebar for inputs
+with st.sidebar:
+    st.header("Input Parameters")
+    x_min = st.slider("X-axis minimum", 0, 100, 0)
+    x_max = st.slider("X-axis maximum", 0, 100, 100)
+    y_min = st.slider("Y-axis minimum", 0, 100, 0)
+    y_max = st.slider("Y-axis maximum", 0, 100, 100)
 
-a = Loan(300000, .05, 30)
-df = a.amort_table_detail() \
-        .loc[:,['year', 'profit']] \
-        .groupby('year').max() \
-        .reset_index()
-        
-plot = alt.Chart(df, title='Profit by Year').mark_line().encode(
-    x=alt.X('year', scale=alt.Scale(domain=[1, df.year.max()])), 
-    y='profit'
-)
-#%%
-st.altair_chart(plot, use_container_width=True)
-#%%
-month_buy, month_rent, year_buy, year_rent = rent_vs_buy(a, 1500)
-return_buy = year_buy.return_total
-return_rent = year_rent.return_total
+# Create a container for the main body of the dashboard
+main_container = st.container()
 
-#%%
-df2 = pd.DataFrame()
-df2['buy'] = return_buy
-df2['rent'] = return_rent
-df2 = df2.reset_index().melt('year')
-#df2 = df2.reset_index()
-#df2['year'] = year_buy.index
-#df2 = df2.melt(id_vars='year', value_vars=['rent', 'buy'], var_name='options', value_name='profit').reset_index()
-#df2 = df2[['year', 'options', 'profit']]
-#%%
-plot2 = alt.Chart(df2, title='Rent vs Buy').mark_line().encode(
-    x='year',
-    y='value',
-    color='variable'
-)
+# Create four columns for the charts
+col1, col2, col3, col4 = main_container.columns(4)
 
-st.altair_chart(plot2, use_container_width=True)
+# Generate some sample data
+x = np.random.randn(1000)
+y = np.random.randn(1000)
+
+# Create the first chart
+with col1:
+    st.line_chart(data=pd.DataFrame({"x": x, "y": y}), x_range=(x_min, x_max), y_range=(y_min, y_max))
+
+# Create the second chart
+with col2:
+    st.area_chart(data=pd.DataFrame({"x": x, "y": y}), x_range=(x_min, x_max), y_range=(y_min, y_max))
+
+# Create the third chart
+with col3:
+    st.bar_chart(data=pd.DataFrame({"x": x, "y": y}), x_range=(x_min, x_max), y_range=(y_min, y_max))
+
+# Create the fourth chart
+with col4:
+    st.scatter_chart(data=pd.DataFrame({"x": x, "y": y}), x_range=(x_min, x_max), y_range=(y_min, y_max))
+
+st.run()

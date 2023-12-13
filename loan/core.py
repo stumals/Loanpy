@@ -1,4 +1,3 @@
-#%%
 import numpy as np
 import numpy_financial as npf
 import pandas as pd
@@ -7,7 +6,7 @@ import matplotlib.pyplot as plt
 from .loan_input import LoanInput
 from utils.npf_amort import amort
 
-#%%
+
 class Loan():
     '''
     API for generating and analyzing mortgage amortization data
@@ -57,7 +56,7 @@ class Loan():
             cum_costs - cumulative costs each period
             all_in_pmts - total dollars spent by period: pmt + pmi + prop_tax + maint + closing_costs + down_pmt
             down_pmt - down payment on loan in period 0
-            profit - home value at each period less home_sale_cost, cum_costs, and end_bal (remaining loan balance)      
+            profit - home value at each period less home_sale_cost, cum_costs, down_pmt, end_bal (remaining loan balance)      
         '''
 
         df = self.amort_table
@@ -88,7 +87,7 @@ class Loan():
         df['all_in_pmts'] = df['all_in_pmts'] + df['down_pmt']
 
         df['home_sale_cost'] = df['home_value'] * self.home_sale_percent
-        df['profit'] = df['home_value'] - df['home_sale_cost'] - df['cum_costs'] - df['end_bal']
+        df['profit'] = df['home_value'] - df['home_sale_cost'] - df['cum_costs'] - self.asset_start_value*self.down_pmt - df['end_bal']
 
         return df
 
@@ -144,30 +143,6 @@ class Loan():
         plt.legend();
         plt.xlim(1);
         plt.ylim(0);
-
-    def plot_total_pmt(self):
-        '''
-        Plots a stacked bar chart showing the all in payment each month through the life of the loan
-        Includes interest, principal, property tax, maintenance, and PMI
-        '''
-        df = self.amort_table_detail()
-        df_pmt = df[['year', 'pmt', 'pmi', 'prop_tax', 'maint']]
-        data = df_pmt.groupby('year').mean()
-        x = data.index
-        a = data['pmi']
-        b = data['maint']
-        c = data['prop_tax']
-        d = data['pmt']
-        if df_pmt['pmi'].sum() != 0:
-            plt.bar(x, data['pmi'], color='y', label='PMI', bottom=b+c+d);
-        plt.bar(x, data['maint'], color='r', label='Maintenance', bottom=c+d);
-        plt.bar(x, data['prop_tax'], color='b', label='Property Tax', bottom=d);
-        plt.bar(x, data['pmt'], color='g', label='Mortgage Payment');
-        plt.legend(loc='lower left');
-        plt.ylim(self.pmt*.5);
-        plt.xlabel('Year');
-        plt.ylabel('Payment');
-        plt.title('Monthly Total Payment by Year');
     
     def plot_profit(self, num_years=10, monthly=False):
         '''

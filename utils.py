@@ -163,3 +163,30 @@ def affordability_calc(gross_income, rate=0, amt=0, pmt_percent=.28, bins=16, am
     df['pmt_monthly'] = pmt    
     
     return df
+
+def pmt_matrix(self, bins=10, amt_incrmt=10000, rate_incrmt=.0025, variance=False):
+    '''
+    Returns matrix of how payment changes with increasing/decreasing inital asset amount and rate
+    '''
+    assert bins%2 == 0, 'Number of bins must be even'
+    assert amt_incrmt > 0, 'Amount is not greater than 0'
+    assert rate_incrmt > 0 and rate_incrmt < 1, 'Rate is not greater than 0 and less than 1'
+
+    rates = np.linspace(self.rate_annual*100 - ((bins/2)*rate_incrmt*100), self.rate_annual*100 + ((bins/2)*rate_incrmt*100), num=bins+1)
+    amts = np.linspace(self.amt - ((bins/2)*amt_incrmt), self.amt + ((bins/2)*amt_incrmt), num=bins+1)
+
+    rates = rates[rates>0]
+    amts = amts[amts>0]
+
+    pmts = {'amts':[], 'rates':[], 'pmt':[]}
+    for a in amts:
+        for r in rates:
+            pmt = -npf.pmt(r/100/self.pmt_freq, self.nper, a)
+            pmts['amts'].append(a)
+            pmts['rates'].append(r)
+            pmts['pmt'].append(pmt)
+    df_pmts = pd.DataFrame(pmts)
+    df_matrix = df_pmts.pivot(index='amts', columns='rates', values='pmt')
+    if variance:
+        df_matrix = df_matrix - self.pmt 
+    return df_matrix

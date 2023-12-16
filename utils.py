@@ -190,3 +190,57 @@ def pmt_matrix(self, bins=10, amt_incrmt=10000, rate_incrmt=.0025, variance=Fals
     if variance:
         df_matrix = df_matrix - self.pmt 
     return df_matrix
+
+
+def plot_debt_vs_equity(self):
+    '''
+    Plots the debt and equity curves of the loan amortization table - ending balance and cumulative principal
+    '''
+    df = self.amort_table
+    df['principal_total'] = df['principal'].cumsum()
+
+    df2 = pd.DataFrame()
+    df2['equity'] = df[['year', 'principal_total']].groupby('year').max()
+    df2['debt'] = df[['year', 'end_bal']].groupby('year').min()
+
+    i = df2[df2['equity'] > df2['debt']].index.min()
+    x1 = i - 1
+    y1 = df2.loc[x1, 'debt']
+    x2 = i
+    y2 = df2.loc[x2, 'debt']
+    x3 = i - 1
+    y3 = df2.loc[x3, 'equity']
+    x4 = i
+    y4 = df2.loc[x4, 'equity']
+
+    @staticmethod
+    def get_line(x1, x2, y1, y2):
+        points = [(x1, y1), (x2, y2)]
+        x_coords, y_coords = zip(*points)
+        a = np.vstack([x_coords, np.ones(len(x_coords))]).T
+        m, c = np.linalg.lstsq(a, y_coords, rcond=None)[0]
+        x = -m
+        c = -c
+        y = 1
+        return {'a':x, 'b':y, 'c':c}
+
+    @staticmethod
+    def get_intersection(p1, p2):
+        x = (p1['b']*p2['c']-p2['b']*p1['c'])/(p1['a']*p2['b']-p2['a']*p2['b'])
+        y = (p1['c']*p2['a']-p2['c']*p1['a'])/(p1['a']*p2['b']-p2['a']*p1['b'])
+        return (x, y)
+
+    p1 = get_line(x1, x2, y1, y2)
+    p2 = get_line(x3, x4, y3, y4)
+
+    intersection = get_intersection(p1, p2)[0]
+
+    plt.plot(df[['year', 'end_bal']].groupby('year').min(), label='Debt', color='r');
+    plt.plot(df[['year', 'principal_total']].groupby('year').max(), label='Equity', color='g');
+    plt.axvline(intersection, color='b');
+    plt.xlabel('Year');
+    plt.ylabel('Amount $');
+    plt.title('Debt vs Equity');
+    plt.legend();
+    plt.xlim(1);
+    plt.ylim(0);

@@ -1,6 +1,5 @@
 import pandas as pd
 import numpy as np
-from loan.core import Loan
 import matplotlib.pyplot as plt
 
 

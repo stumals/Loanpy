@@ -35,7 +35,7 @@ class LoanPlots:
             x = alt.X('year', scale=alt.Scale(domain=domain, nice=False), title='Year'),
             y=alt.Y('sum(value)', title='Payment'),
             color='Type',
-            tooltip=['Type', 'value', 'year', 'sum(Type):Q']
+            tooltip=['Type', 'value', 'year']
             )
         return stacked_bar
     

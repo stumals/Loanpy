@@ -6,16 +6,15 @@ from loan.loan_input import LoanInput
 from loan.core import Loan
 from loan.plots import LoanPlots
 
-# Create a sidebar for inputs
 with st.sidebar:
     st.header("Input Parameters")
     num_years_analysis = st.number_input("Years to Analyze", min_value=1, max_value=30, value=15, step=1)
     asset_amt = st.number_input("Asset Value", min_value=0, value=300000, step=25000)
+    down_pmt = st.number_input("Down Payment %", min_value=0.0, max_value=1.0, value=.2, format='%f')
     rate_annual = st.number_input("Annual Interest Rate", min_value=0.0, max_value=1.0, value=.05, step=.005, format='%f')
-    home_value_appreciation = st.number_input("Annual Asset Appreciation", min_value=0.0, max_value=1.0, value=.03, step=.005, format='%f')
+    home_value_appreciation = st.number_input("Annual Asset Appreciation", min_value=0.0, max_value=1.0, value=.05, step=.005, format='%f')
     num_years = st.number_input("Number of Year", min_value=1, value=30)
     pmt_freq = st.number_input("Payment Frequency", min_value=1, value=12)
-    down_pmt = st.number_input("Down Payment %", min_value=0.0, max_value=1.0, value=.2, format='%f')
     closing_cost = st.number_input("Closing Cost", min_value=0, value=0)
     closing_cost_finance = st.checkbox("Finance Closing Cost", value=False)
     prop_tax_rate = st.number_input("Property Tax Rate", min_value=0.0, max_value=1.0, value=.01, step=.005, format='%f')

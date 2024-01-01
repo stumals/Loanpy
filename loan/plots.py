@@ -106,25 +106,32 @@ class LoanPlots:
         ax.grid(True)
         return fig
     
-    def home_value(self):
+    def home_value(self, cagr):
         df_value = self.df[['year', 'home_value']].groupby('year').max().reset_index()
         fig, ax = plt.subplots()
         ax.bar(df_value['year'], df_value['home_value'])
-        # total data labels
-        y_offset = 50
-        # for i, total in enumerate(df_value['home_value'].to_list()):
-        #     if i%3 == 0:
-        #         ax.text(totals.index[i]+1, total + y_offset, str(round(total/1000,1))+'K', ha='center')
-        
-        #ax.grid(True)
+
+        y_offset = 5000
+        for i, v in enumerate(df_value['home_value']):
+            if i == 0 or i == df_value.shape[0]-1:
+                ax.text(df_value.index[i]+1, v*1.06,
+                        str(round(v/1000,1))+'K',
+                        ha='center',
+                        size=10,
+                        weight='bold'
+                )
+
+        mid_patch = round(len(ax.patches)/3) 
+        x = list(ax.patches)[mid_patch].get_x()
+        y = list(ax.patches)[mid_patch].get_height()*1.2
+
+        ax.text(x, y, '{}% CAGR'.format(round(cagr*100,1)), color='r', weight='bold', fontsize=10)
+
+        ax.set_xlabel('Year')
+        ax.set_ylabel('Home Value')
+        ax.set_title('Home Value by Year')
+        ax.set_ylim(ymin=0, ymax=df_value['home_value'].max()*1.12)
         return fig
 
-
-#%%
-# d = {'asset_amt':400000, 'rate_annual': .04, 'num_years': 30, 'pmt_freq': 12, 'down_pmt':.1}
-# params = LoanInput(**d)
-# a = Loan(params)
-
-# LoanPlots.profit(a)
 
 #%%

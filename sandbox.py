@@ -95,76 +95,21 @@ ax.set_title('Profit by Year')
 
 
 #%%
-df_pmt = df[['year', 'principal', 'interest', 'pmi', 'prop_tax', 'maint']]
-data = df_pmt.groupby('year').max().reset_index()
-#data = data[data['year'] <= 5]
-totals = data.sum(axis=1)
-data = data.to_dict('Series')
-y = data['year']
-del data['year']
-bottom = np.zeros(len(y))
+df_value = df[['year', 'home_value']].groupby('year').max().reset_index()
 fig, ax = plt.subplots()
-for k, v in data.items():
-    ax.bar(y, v, label=k, bottom=bottom)
-    bottom += v
-# ax.legend()
+ax.bar(df_value['year'], df_value['home_value'])
 
-# y_offset = 100
-# for i, total in enumerate(totals):
-#   if i%5 == 0:
-#     ax.text(totals.index[i]+.5, total + y_offset, str(round(total/1000,1))+'K', ha='center')
-
-y_offset = -15
-for bar in ax.patches:
-  
-  ax.text(
-      # Put the text in the middle of each bar. get_x returns the start
-      # so we add half the width to get to the middle.
-      bar.get_x() + bar.get_width() / 2,
-      # Vertically, add the height of the bar to the start of the bar,
-      # along with the offset.
-      bar.get_height()/2 + bar.get_y(),
-      # This is actual value we'll show.
-      round(bar.get_height()),
-      # Center the labels and style them a bit.
-      ha='center',
-      color='black',
-      weight='bold',
-      size=8
- )
+# y_offset = 50
+# for i, total in enumerate(df_value['home_value']):
+#     if i == 0 or i == df_value.shape[1]-1:
+#         ax.text(totals.index[i]+1, total + y_offset,
+#                 str(round(total/1000,1))+'K',
+#                 ha='center',
+#                 size=8
+#         )
 
 
-ax.grid(True)
-#%%
-bar_dict = {}
-bar_map = {}
-i = 0
-for a in ax.patches: 
-    if a.get_x() not in bar_dict.keys():
-        bar_dict[a.get_x()] = []
-        bar_map[a.get_x()] = i
-        i += 1
-    else:
-        bar_dict[a.get_x()].append({'get_x':a.get_x(), 'get_width':a.get_width(),
-                                    'get_height': a.get_height(), 'get_y': a.get_y()})
-
-bar_dict = dict((bar_map[key], value) for (key, value) in bar_dict.items())
-#%%
-bar_dict[1]
-#%%
-for a in ax.patches:
-   if a.get_x() == 1.6:
-    print(a)
-
-axpatch = []
-
-for i, a in enumerate(ax.patches):
-   print(i//30)
-   
-      
-#%%
-for a in ax.patches:
-   if a.get_x == .6:
-      print(a)
-#%%
-df_pmt.groupby('year').max().iloc[1,:]
+ax.set_xlabel('Year')
+ax.set_ylabel('Home Value')
+ax.set_title('Home Value by Year')
+ax.set_ylim(ymin=0, ymax=df_value['home_value'].max()*1.1)

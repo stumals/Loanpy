@@ -7,6 +7,11 @@ from loan.loan_input import LoanInput
 from loan.core import Loan
 from loan.plots import LoanPlots
 #%%
+
+st.set_page_config(
+    layout='wide'
+)
+
 with st.sidebar:
     st.header("Input Parameters")
     num_years_analysis = st.number_input("Years to Analyze", min_value=1, max_value=30, value=15, step=1)
@@ -35,13 +40,14 @@ loan = Loan(params)
 lp = LoanPlots(loan, num_years_analysis)
 
 #st.altair_chart(lp.payment(), use_container_width=True)
-st.pyplot(lp.payment(datalabels=1))
 
-with st.container():
-    col1, col2 = st.columns(2)
-    with col1:
-        st.pyplot(lp.profit())#, use_container_width=True)        
-    with col2:
-        st.pyplot(lp.home_value())#, use_container_width=True)
+
+#with st.container():
+col1, col2 = st.columns(2, )
+with col1:
+        st.pyplot(lp.payment(datalabels=1), use_container_width=True)
+        st.pyplot(lp.profit(), use_container_width=True)        
+with col2:
+     st.pyplot(lp.home_value(home_value_appreciation), use_container_width=True)
 
 

@@ -39,15 +39,12 @@ loan = Loan(params)
 
 lp = LoanPlots(loan, num_years_analysis)
 
-#st.altair_chart(lp.payment(), use_container_width=True)
-
-
-#with st.container():
 col1, col2 = st.columns(2, )
 with col1:
-        st.pyplot(lp.payment(datalabels=1), use_container_width=True)
-        st.pyplot(lp.profit(), use_container_width=True)        
+    st.pyplot(lp.payment(datalabels=1), use_container_width=True)
+    st.pyplot(lp.profit(), use_container_width=True)        
 with col2:
-     st.pyplot(lp.home_value(home_value_appreciation), use_container_width=True)
+    st.pyplot(lp.home_value(home_value_appreciation), use_container_width=True)
+    st.pyplot(lp.profit_waterfall(), use_container_width=True)
 
 

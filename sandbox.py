@@ -9,6 +9,7 @@ import os
 from econ.econ_data import EconData
 import requests
 from io import StringIO
+import numpy_financial as npf
 #%%
 os.getcwd()
 
@@ -80,36 +81,78 @@ params = LoanInput(**loan_inputs)
 loan = Loan(params)
 df = loan.amort_table_detail()
 #%%
-df_profit = df[['year', 'profit']].groupby('year').max().reset_index()
-fig, ax = plt.subplots()
-ax.plot(df_profit['year'], df_profit['profit'])
-ax.axhline(0, color='r')
-ax.set_xlabel('Year')
-ax.set_ylabel('Profit')
-ax.set_title('Profit by Year')  
-#ax.set_xlim(xmin=df_profit['year'].min(), xmax=df_profit['year'].max())
-
+for i in np.linspace(0,.2,9):
+    loan_inputs_new = loan_inputs.copy()
+    loan_inputs_new['down_pmt'] = i
+    params_new = LoanInput(**loan_inputs_new)
+    loan_new = Loan(params_new)
+    df_new = loan_new.amort_table_detail()
+    print(df_new[df_new['period']==num_years_analysis*pmt_freq].loc[:,'profit'].values)
 
 
 
 
 
 #%%
-df_value = df[['year', 'home_value']].groupby('year').max().reset_index()
+def calc_cum_int(asset_amt, down_pmt, rate_annual, num_years, pmt_freq, years_analysis):
+    periods = np.arange(1, num_years*pmt_freq + 1, dtype=int)
+    interest = -npf.ipmt(rate_annual/pmt_freq, periods, pmt_freq*num_years, asset_amt - (asset_amt*down_pmt), 0)
+    return interest[:years_analysis*pmt_freq].sum()
+
+def calc_cum_pmi()
+
+#%%
+np.linspace(0,.2,9)
+#%%
+for i in np.linspace(0,.2,9):
+    print(calc_cum_int(asset_amt, i, rate_annual, num_years, pmt_freq, 15))
+
+#%%
+df_profit = df[['year', 'profit']].groupby('year').max().reset_index()
+df_profit = df_profit[df_profit['year']<=num_years_analysis]
+profit_year = df_profit[df_profit['profit'] > 0].min()
+profit_year['year']
+
+#%%
+num_id = num_years_analysis*pmt_freq-1
+data = {}
+data['Home Appr'] = df.loc[num_id, 'home_value'] - df.loc[num_id, 'end_bal'] - df.loc[0, 'down_pmt']
+data['Interest'] = -df.loc[:num_id, 'interest'].sum()
+data['PMI'] = -df.loc[:num_id, 'pmi'].sum()
+data['Maint'] = -df.loc[:num_id, 'maint'].sum()
+data['Prop Tax'] = -df.loc[:num_id, 'prop_tax'].sum()
+data['Broker Fees'] = -df.loc[num_id,'home_sale_cost'] - df.loc[0,'closing_costs']
+data = pd.DataFrame(data, index=[0])
+data_prof = pd.DataFrame({'value':data.sum(axis=1).values[0]}, index=['Profit']).reset_index().rename(columns={'index':'type'})
+data = data.transpose().reset_index().rename(columns={'index':'type', 0:'value'})
+data = data[data['value']!=0.0]
+data_pos = data[data['value']>0]
+data_neg = data[data['value']<0]
+
+#%%
 fig, ax = plt.subplots()
-ax.bar(df_value['year'], df_value['home_value'])
+ax.bar(data_pos['type'], data_pos['value'], color='g')
+ax.bar(data_neg['type'], data_neg['value'], color='r')
+ax.bar(data_prof['type'], data_prof['value'], color='black')
+for tick in ax.get_xticklabels():
+    tick.set_rotation(45)
+for a in ax.patches:
+    ax.text(
+        a.get_x() + a.get_width() / 2,
+        a.get_height() / 2 + a.get_y(),
+        str(round(a.get_height()/1000, 1)) + 'K',
+        ha='center',
+        color='white',
+        size=7 
+    )
 
-# y_offset = 50
-# for i, total in enumerate(df_value['home_value']):
-#     if i == 0 or i == df_value.shape[1]-1:
-#         ax.text(totals.index[i]+1, total + y_offset,
-#                 str(round(total/1000,1))+'K',
-#                 ha='center',
-#                 size=8
-#         )
+ax.get_yaxis().set_visible(False)
+ax.spines['top'].set_visible(False)
+ax.spines['right'].set_visible(False)
+ax.spines['bottom'].set_visible(False)
+ax.spines['left'].set_visible(False)
 
 
-ax.set_xlabel('Year')
-ax.set_ylabel('Home Value')
-ax.set_title('Home Value by Year')
-ax.set_ylim(ymin=0, ymax=df_value['home_value'].max()*1.1)
+#%%
+for a in ax.patches:
+    print(a)

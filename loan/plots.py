@@ -7,12 +7,6 @@ import matplotlib.pyplot as plt
 from loan.core import Loan
 from loan.loan_input import LoanInput
 
-#%%
-# import os
-# os.chdir('..')
-# os.getcwd()
-
-#%%
 class LoanPlots:
 
     def __init__(self, loan: Loan, num_years: int):
@@ -108,13 +102,15 @@ class LoanPlots:
     
     def home_value(self, cagr):
         df_value = self.df[['year', 'home_value']].groupby('year').max().reset_index()
+        asset_start = pd.DataFrame({'year':0, 'home_value':self.loan.asset_start_value}, index=[0])
+        df_value = pd.concat([asset_start, df_value]).reset_index(drop = True)
         fig, ax = plt.subplots()
         ax.bar(df_value['year'], df_value['home_value'])
 
         y_offset = 5000
         for i, v in enumerate(df_value['home_value']):
             if i == 0 or i == df_value.shape[0]-1:
-                ax.text(df_value.index[i]+1, v*1.06,
+                ax.text(df_value.index[i], v*1.06,
                         str(round(v/1000,1))+'K',
                         ha='center',
                         size=10,
@@ -131,6 +127,48 @@ class LoanPlots:
         ax.set_ylabel('Home Value')
         ax.set_title('Home Value by Year')
         ax.set_ylim(ymin=0, ymax=df_value['home_value'].max()*1.12)
+        return fig
+    
+    def profit_waterfall(self):
+        num_id = self.num_years*self.loan.pmt_freq-1
+        data = {}
+        data['Home Appr'] = self.df.loc[num_id, 'home_value'] - self.df.loc[num_id, 'end_bal'] - self.df.loc[0, 'down_pmt']
+        data['Interest'] = -self.df.loc[:num_id, 'interest'].sum()
+        data['PMI'] = -self.df.loc[:num_id, 'pmi'].sum()
+        data['Maint'] = -self.df.loc[:num_id, 'maint'].sum()
+        data['Prop Tax'] = -self.df.loc[:num_id, 'prop_tax'].sum()
+        data['Broker Fees'] = -self.df.loc[num_id,'home_sale_cost'] - self.df.loc[0,'closing_costs']
+        data = pd.DataFrame(data, index=[0])
+        data_prof = pd.DataFrame({'value':data.sum(axis=1).values[0]}, index=['Profit']).reset_index().rename(columns={'index':'type'})
+        data = data.transpose().reset_index().rename(columns={'index':'type', 0:'value'})
+        data = data[data['value']!=0.0]
+        data_pos = data[data['value']>0]
+        data_neg = data[data['value']<0]
+
+        fig, ax = plt.subplots()
+        ax.bar(data_pos['type'], data_pos['value'], color='g')
+        ax.bar(data_neg['type'], data_neg['value'], color='r')
+        ax.bar(data_prof['type'], data_prof['value'], color='black')
+        for tick in ax.get_xticklabels():
+            tick.set_rotation(45)
+        for a in ax.patches:
+            ax.text(
+                a.get_x() + a.get_width() / 2,
+                a.get_height() / 2 + a.get_y(),
+                str(round(a.get_height()/1000, 1)) + 'K',
+                ha='center',
+                color='white',
+                size=8,
+                weight='bold' 
+            )
+        ax.set_title('Profit Waterfall at Year {}'.format(self.num_years))
+        ax.get_yaxis().set_visible(False)
+        ax.spines['top'].set_visible(False)
+        ax.spines['right'].set_visible(False)
+        ax.spines['bottom'].set_visible(False)
+        ax.spines['left'].set_visible(False)
+        ax.set_facecolor('whitesmoke')
+
         return fig
 
 

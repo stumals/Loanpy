@@ -8,9 +8,7 @@ from utils.npf_amort import amort
 
 
 class Loan():
-    '''
-    API for generating and analyzing mortgage amortization data
-    '''
+    
     def __init__(self, loan_params: LoanInput):
 
         self.asset_start_value = loan_params.asset_amt
@@ -87,7 +85,7 @@ class Loan():
         df['all_in_pmts'] = df['all_in_pmts'] + df['down_pmt']
 
         df['home_sale_cost'] = df['home_value'] * self.home_sale_percent
-        df['profit'] = df['home_value'] - df['home_sale_cost'] - df['cum_costs'] - self.asset_start_value*self.down_pmt - df['end_bal']
+        df['profit'] = df['home_value'] - df['home_sale_cost'] - df['cum_costs'] - self.asset_start_value*self.down_pmt - self.amt
 
         return df
 

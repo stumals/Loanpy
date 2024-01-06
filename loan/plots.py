@@ -123,6 +123,8 @@ class LoanPlots:
 
         ax.text(x, y, '{}% CAGR'.format(round(cagr*100,1)), color='r', weight='bold', fontsize=10)
 
+        ax.spines['top'].set_visible(False)
+        ax.spines['right'].set_visible(False)
         ax.set_xlabel('Year')
         ax.set_ylabel('Home Value')
         ax.set_title('Home Value by Year')
@@ -132,25 +134,33 @@ class LoanPlots:
     def profit_waterfall(self):
         num_id = self.num_years*self.loan.pmt_freq-1
         data = {}
-        data['Home Appr'] = self.df.loc[num_id, 'home_value'] - self.df.loc[num_id, 'end_bal'] - self.df.loc[0, 'down_pmt']
+        data['Home Appr'] = self.df.loc[num_id, 'home_value'] - self.loan.amt - self.loan.asset_start_value*self.loan.down_pmt
         data['Interest'] = -self.df.loc[:num_id, 'interest'].sum()
         data['PMI'] = -self.df.loc[:num_id, 'pmi'].sum()
         data['Maint'] = -self.df.loc[:num_id, 'maint'].sum()
         data['Prop Tax'] = -self.df.loc[:num_id, 'prop_tax'].sum()
         data['Broker Fees'] = -self.df.loc[num_id,'home_sale_cost'] - self.df.loc[0,'closing_costs']
         data = pd.DataFrame(data, index=[0])
-        data_prof = pd.DataFrame({'value':data.sum(axis=1).values[0]}, index=['Profit']).reset_index().rename(columns={'index':'type'})
+        data['Profit'] = data.sum(axis=1)
         data = data.transpose().reset_index().rename(columns={'index':'type', 0:'value'})
-        data = data[data['value']!=0.0]
-        data_pos = data[data['value']>0]
-        data_neg = data[data['value']<0]
+        data = data[data['value'] != 0]
 
         fig, ax = plt.subplots()
-        ax.bar(data_pos['type'], data_pos['value'], color='g')
-        ax.bar(data_neg['type'], data_neg['value'], color='r')
-        ax.bar(data_prof['type'], data_prof['value'], color='black')
+
+        bottom = 0
+        for i, t in enumerate(data['type']):
+            val = data[data['type']==t].loc[:,'value'].values[0]
+            if t == 'Profit':
+                ax.bar(t, val, color='black')
+            elif val < 0:
+                ax.bar(t, val, color='red', bottom=bottom)
+            else:
+                ax.bar(t, val, color='green', bottom=bottom)
+            bottom += val
+
         for tick in ax.get_xticklabels():
             tick.set_rotation(45)
+
         for a in ax.patches:
             ax.text(
                 a.get_x() + a.get_width() / 2,
@@ -158,16 +168,17 @@ class LoanPlots:
                 str(round(a.get_height()/1000, 1)) + 'K',
                 ha='center',
                 color='white',
-                size=8,
+                size=9,
                 weight='bold' 
             )
+        ax.set_ylim(ymax=data['value'].max()*1.1)
+        ax.set_facecolor('tan')
         ax.set_title('Profit Waterfall at Year {}'.format(self.num_years))
         ax.get_yaxis().set_visible(False)
         ax.spines['top'].set_visible(False)
         ax.spines['right'].set_visible(False)
         ax.spines['bottom'].set_visible(False)
         ax.spines['left'].set_visible(False)
-        ax.set_facecolor('whitesmoke')
 
         return fig
 

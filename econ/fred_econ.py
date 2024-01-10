@@ -67,29 +67,3 @@ class FRED:
         return fig
         
 
-
-# %%
-from datetime import date
-from dateutil.relativedelta import relativedelta
-today = '2023-12-31'
-prev = str(date.today() - relativedelta(years=3))
-
-fred = FRED()
-df_mgt = fred.get_fred_data(fred.fred_ids['mgt_rate'], prev, today)
-# %%
-fig, ax = plt.subplots()
-ax.plot(df_mgt['date'], df_mgt['value'])
-ax.annotate(str(df_mgt['value'].iloc[-1]) + '%', xy=(df_mgt['date'].max(), df_mgt['value'].iloc[-1]),
-            xytext=(df_mgt['date'].iloc[-8], df_mgt['value'].max()*.7),
-            arrowprops=dict(arrowstyle='->'),
-            )
-
-ax.set_title('mgt rate')
-ax.set_ylabel('rate')
-ax.set_xlabel('Date')
-ax.grid(True)
-fig.autofmt_xdate()
-
-#%%
-
-str(df_mgt['date'].iloc[-2])

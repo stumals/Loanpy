@@ -91,8 +91,8 @@ class LoanPlots:
     def profit(self):
         df_profit = self.df[['year', 'profit']].groupby('year').max().reset_index()
         fig, ax = plt.subplots()
-        ax.plot(df_profit['year'], df_profit['profit'])
-        if df_profit['profit'].min() < 0:
+        ax.plot(df_profit.loc[:,'year'], df_profit.loc[:,'profit'])
+        if df_profit.loc[:,'profit'].min() < 0:
             ax.axhline(0, color='r')
         ax.set_xlabel('Year')
         ax.set_ylabel('Profit')

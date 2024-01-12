@@ -1,4 +1,3 @@
-#%%
 import os
 import requests
 import pandas as pd
@@ -9,12 +8,12 @@ import streamlit as st
 from dotenv import load_dotenv, find_dotenv
 load_dotenv()
 
-# load fred api key from streamlit (used in streamlit deployed app)
-st.write(os.environ["fred_api_key"] == st.secrets["FRED_API_KEY"],)
-
 class FRED:
     def __init__(self):
-        self.api_key = os.environ.get('fred_api_key')
+        try:
+            self.fred_api_key = st.secrets["FRED_API_KEY"]
+        except:
+            self.api_key = os.environ.get('fred_api_key')
         self.series_url = 'https://api.stlouisfed.org/fred/series/observations'
         self.file_type = 'json'
         self.fred_ids = {'mgt_rate': 'MORTGAGE30US',

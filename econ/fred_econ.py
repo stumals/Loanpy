@@ -4,9 +4,13 @@ import requests
 import pandas as pd
 import json
 import matplotlib.pyplot as plt
+import streamlit as st
 
 from dotenv import load_dotenv, find_dotenv
 load_dotenv()
+
+# load fred api key from streamlit (used in streamlit deployed app)
+st.write(os.environ["db_username"] == st.secrets["FRED_API_KEY"],)
 
 class FRED:
     def __init__(self):
@@ -24,7 +28,6 @@ class FRED:
 
     def get_fred_data(self, data_id: list, start_date: str, end_date: str, frequency: str) -> pd.DataFrame:
         df = pd.DataFrame()
-        print(self.api_key)
         params = {'series_id': data_id,
                 'api_key': self.api_key, 
                 'file_type': self.file_type,

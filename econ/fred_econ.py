@@ -10,7 +10,7 @@ from dotenv import load_dotenv, find_dotenv
 load_dotenv()
 
 # load fred api key from streamlit (used in streamlit deployed app)
-st.write(os.environ["db_username"] == st.secrets["FRED_API_KEY"],)
+st.write(os.environ["fred_api_key"] == st.secrets["FRED_API_KEY"],)
 
 class FRED:
     def __init__(self):

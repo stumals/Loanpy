@@ -23,20 +23,22 @@ class FRED:
                          'home_price_index': 'CSUSHPINSA',
                          'afford_index': 'FIXHAI'}
 
-    def get_fred_data(self, data_id: list, start_date: str, end_date: str, frequency='m') -> pd.DataFrame:
+    def get_fred_data(self, data_id: list, start_date: str, end_date: str, frequency: str) -> pd.DataFrame:
         df = pd.DataFrame()
         params = {'series_id': data_id,
                 'api_key': self.api_key, 
                 'file_type': self.file_type,
                 'observation_start': start_date,
                 'observation_end': end_date,
-                'frequency': frequency}
+                'frequency': frequency,
+                'aggregation_method': 'eop'
+                }
 
         r = json.loads(requests.get(self.series_url, params=params).text)
         data = {'date':[], 'value':[]}
         for i in r['observations']:
-            data['date'].append(pd.to_datetime(i['date']))
             data['value'].append(float(i['value']))
+            data['date'].append(pd.to_datetime(i['date']))            
         
         df = pd.DataFrame(data)
 

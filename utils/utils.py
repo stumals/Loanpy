@@ -1,5 +1,6 @@
 import pandas as pd
 import numpy as np
+import numpy_financial as npf
 import matplotlib.pyplot as plt
 
 
@@ -9,6 +10,31 @@ def expected_value_cagr(start_value, end_value, years):
     '''
     cagr = (end_value/start_value)**(1/years) - 1
     return cagr
+
+def affordability_calc(gross_income, rate=0, amt=0, pmt_percent=.28, bins=16, amt_incrmt=10000, rate_incrmt=.0025):
+    '''
+    Returns dataframe of varying asset amounts and rates based on a fixed payment that is calculated as a % of gross income
+    '''
+    pmt = gross_income/12 * pmt_percent
+    def calc_rate(amt):
+        return npf.rate(360, -pmt, amt, 0)*12*100
+    def calc_amt(rate):
+        return npf.pv(rate/12/100, 360, -pmt, 0)
+    df = pd.DataFrame()
+    if amt == 0:
+        rates = np.linspace(rate*100 - ((bins/2)*rate_incrmt*100), rate*100 + ((bins/2)*rate_incrmt*100), num=bins+1)
+        df['rates'] = rates
+        df['loan_amts'] = pd.Series(rates).apply(calc_amt)
+    else:
+        amts = np.linspace(amt - ((bins/2)*amt_incrmt), amt + ((bins/2)*amt_incrmt), num=bins+1)
+        df['loan_amts'] = amts
+        df['rates'] = pd.Series(amts).apply(calc_rate)
+    df['gross_income'] = gross_income
+    df['gross_income_mthly'] = gross_income/12
+    df['percent_gross_income'] = pmt_percent
+    df['pmt_monthly'] = pmt    
+    
+    return df
 
 def rent_vs_buy(loan, rent_start, time_years=10, rent_growth=.05, market_returns=.07, cap_gains_tax=.15):
     '''
@@ -138,30 +164,6 @@ def plot_comparison(option_a, option_b):
     plt.ylabel('Return $');
     plt.legend();
 
-def affordability_calc(gross_income, rate=0, amt=0, pmt_percent=.28, bins=16, amt_incrmt=10000, rate_incrmt=.0025):
-    '''
-    Returns dataframe of varying asset amounts and rates based on a fixed payment that is calculated as a % of gross income
-    '''
-    pmt = gross_income/12 * pmt_percent
-    def calc_rate(amt):
-        return npf.rate(360, -pmt, amt, 0)*12*100
-    def calc_amt(rate):
-        return npf.pv(rate/12/100, 360, -pmt, 0)
-    df = pd.DataFrame()
-    if amt == 0:
-        rates = np.linspace(rate*100 - ((bins/2)*rate_incrmt*100), rate*100 + ((bins/2)*rate_incrmt*100), num=bins+1)
-        df['rates'] = rates
-        df['loan_amts'] = pd.Series(rates).apply(calc_amt)
-    else:
-        amts = np.linspace(amt - ((bins/2)*amt_incrmt), amt + ((bins/2)*amt_incrmt), num=bins+1)
-        df['loan_amts'] = amts
-        df['rates'] = pd.Series(amts).apply(calc_rate)
-    df['gross_income'] = gross_income
-    df['gross_income_mthly'] = gross_income/12
-    df['percent_gross_income'] = pmt_percent
-    df['pmt_monthly'] = pmt    
-    
-    return df
 
 def pmt_matrix(self, bins=10, amt_incrmt=10000, rate_incrmt=.0025, variance=False):
     '''

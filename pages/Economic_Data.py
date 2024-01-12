@@ -11,10 +11,10 @@ prev = str(date.today() - relativedelta(years=3))
 today = '2023-12-31'
 #%%
 fred = FRED()
-df_mgt = fred.get_fred_data(fred.fred_ids['mgt_rate'], prev, today)
-df_hpi = fred.get_fred_data(fred.fred_ids['home_price_index'], prev, today)
-df_ai = fred.get_fred_data(fred.fred_ids['afford_index'], prev, today)
-df_cpi = fred.get_fred_data(fred.fred_ids['cpi'], prev, today)
+df_mgt = fred.get_fred_data(fred.fred_ids['mgt_rate'], prev, today, 'm')
+df_hpi = fred.get_fred_data(fred.fred_ids['home_price_index'], prev, today, 'm')
+df_ai = fred.get_fred_data(fred.fred_ids['afford_index'], prev, today, 'm')
+df_cpi = fred.get_fred_data(fred.fred_ids['cpi'], prev, today, 'm')
 
 st.set_page_config(
     layout='wide'

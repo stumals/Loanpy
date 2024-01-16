@@ -15,6 +15,10 @@ load_dotenv()
 from econ.fred_econ import FRED
 from econ.models import LinReg
 
+st.set_page_config(
+    layout='wide'
+)
+
 #%%
 # today = str(date.today())
 # prev = str(date.today() - relativedelta(years=3))
@@ -88,8 +92,5 @@ def mgt_ffr_plot(df_mgt, df_ffr, df_preds):
     return fig
 
 
-st.set_page_config(
-    layout='wide'
-)
 
 st.pyplot(mgt_ffr_plot(df_mgt, df_ffr, preds), use_container_width=True)

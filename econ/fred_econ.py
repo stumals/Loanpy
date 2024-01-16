@@ -12,9 +12,10 @@ load_dotenv()
 class FRED:
     def __init__(self):
         try:
-            self.api_key = os.environ.get('fred_api_key')
-        except:
             self.api_key = st.secrets["FRED_API_KEY"]
+        except:
+            st.error('')
+            self.api_key = os.environ.get('fred_api_key')
             
         self.series_url = 'https://api.stlouisfed.org/fred/series/observations'
         self.file_type = 'json'

@@ -5,6 +5,10 @@ from dateutil.relativedelta import relativedelta
 
 from econ.fred_econ import FRED
 
+st.set_page_config(
+    layout='wide'
+)
+
 #%%
 today = str(date.today())
 prev = str(date.today() - relativedelta(years=3))
@@ -15,10 +19,6 @@ df_mgt = fred.get_fred_data(fred.fred_ids['mgt_rate'], prev, today, 'm')
 df_hpi = fred.get_fred_data(fred.fred_ids['home_price_index'], prev, today, 'm')
 df_ai = fred.get_fred_data(fred.fred_ids['afford_index'], prev, today, 'm')
 df_cpi = fred.get_fred_data(fred.fred_ids['cpi'], prev, today, 'm')
-
-st.set_page_config(
-    layout='wide'
-)
 
 col1, col2 = st.columns(2, )
 

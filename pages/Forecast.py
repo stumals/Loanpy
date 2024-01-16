@@ -61,6 +61,7 @@ x = df.loc[:,['ffr']]
 y = df.loc[:,'mgt_rate']
 
 lm = LinReg(x, y)
+df_test = lm.test()
 lm.train()
 
 data = {}
@@ -76,7 +77,7 @@ for i, d in enumerate(df_ffr_fcst['date']):
 data['date'] = [dt for d in dates for dt in d ]
 data['value'] = [vl for v in vals for vl in v]
 df_ffr_new = pd.DataFrame(data).set_index('date')
-#df_ffr_new['cpi'] = 3
+
 df_ffr_new = sm.add_constant(df_ffr_new, has_constant='add')
 
 preds = lm.predict(df_ffr_new).reset_index()
@@ -87,15 +88,31 @@ preds['ffr'] = df_ffr_new['value'].values
 
 def mgt_ffr_plot(df_mgt, df_ffr, df_preds):
     fig, ax = plt.subplots()
-    ax.plot(df_mgt['date'], df_mgt['value'], label='Mgt Rate')
-    ax.plot(df_ffr['date'], df_ffr['value'], label='FFR')
-    ax.plot(df_preds['date'], df_preds['mean'], label='Mgt Fcst')
-    ax.plot(df_preds['date'], df_preds['obs_ci_lower'], label='Mgt Lower')
-    ax.plot(df_preds['date'], df_preds['obs_ci_upper'], label='Mgt Upper')
-    ax.plot(df_preds['date'], df_preds['ffr'], label='FFR Fcst')
+    ax.plot(df_mgt['date'], df_mgt['value'], label='Mgt Rate', color='blue')
+    ax.plot(df_ffr['date'], df_ffr['value'], label='FFR', color='orange')
+    ax.plot(df_preds['date'], df_preds['mean'], label='Mgt Fcst', color='blue', linestyle='--')
+    ax.plot(df_preds['date'], df_preds['obs_ci_lower'], label='Mgt Lower', color='red', linestyle='--')
+    ax.plot(df_preds['date'], df_preds['obs_ci_upper'], label='Mgt Upper', color='red', linestyle='--')
+    ax.plot(df_preds['date'], df_preds['ffr'], label='FFR Fcst', color='orange', linestyle='--')
     ax.legend()
+    ax.grid(True)
     return fig
 
+col1, col2 = st.columns(2, )
 
+with col1:
+    st.pyplot(mgt_ffr_plot(df_mgt, df_ffr, preds), use_container_width=True)
+with col2:
+    st.markdown(
+        '''
+        30 Year Mortgage Rate Forecast
+        - Baseline model using linear regression with only the federal funds rate as the predicting variable
+        - Mortgage rate forecast based on forecasted FFR from the St. Louis Fed
+        - 95% prediction interval of rate forecast also provided
+        - Model tested using cross validation with 5 folds
+        - Final model built using full dataset
 
-st.pyplot(mgt_ffr_plot(df_mgt, df_ffr, preds), use_container_width=True)
+        '''
+    )
+
+    st.dataframe(df_test)

@@ -1,6 +1,7 @@
 import os
 import requests
 import pandas as pd
+import numpy as np
 import json
 import matplotlib.pyplot as plt
 import streamlit as st
@@ -38,9 +39,10 @@ class FRED:
 
         r = json.loads(requests.get(self.series_url, params=params).text)
         data = {'date':[], 'value':[]}
+        f = lambda x: np.nan if i['value']=='.' else float(i['value'])
         for i in r['observations']:
-            data['value'].append(float(i['value']))
-            data['date'].append(pd.to_datetime(i['date']))            
+            data['value'].append(f(i))
+            data['date'].append(pd.to_datetime(i['date']))        
         
         df = pd.DataFrame(data)
 

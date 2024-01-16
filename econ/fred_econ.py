@@ -14,7 +14,6 @@ class FRED:
         try:
             self.api_key = st.secrets["FRED_API_KEY"]
         except:
-            st.error('')
             self.api_key = os.environ.get('fred_api_key')
             
         self.series_url = 'https://api.stlouisfed.org/fred/series/observations'

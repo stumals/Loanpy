@@ -31,9 +31,14 @@ df_mgt = fred.get_fred_data(fred.fred_ids['mgt_rate'], prev, today, 'm')
 df_cpi = fred.get_fred_data(fred.fred_ids['cpi'], prev, today, 'm')
 df_ffr = fred.get_fred_data(fred.fred_ids['ffr'], prev, today, 'm')
 
+try:
+    api_key = st.secrets["FRED_API_KEY"]
+except:
+    api_key = os.environ.get('fred_api_key')
+
 series_url = 'https://api.stlouisfed.org/fred/series/observations'
 params = {'series_id': 'FEDTARCTM',
-        'api_key': os.environ.get('fred_api_key'), 
+        'api_key': api_key, 
         'file_type': 'json',
         'observation_start': '2024-01-01',
         }

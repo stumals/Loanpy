@@ -11,8 +11,8 @@ st.set_page_config(
 
 #%%
 today = str(date.today())
-prev = str(date.today() - relativedelta(years=3))
-today = '2023-12-31'
+prev = str(date.today() - relativedelta(years=5))
+#today = '2023-12-31'
 #%%
 fred = FRED()
 df_mgt = fred.get_fred_data(fred.fred_ids['mgt_rate'], prev, today, 'm')

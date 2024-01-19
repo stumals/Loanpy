@@ -42,8 +42,11 @@ class FRED:
         data = {'date':[], 'value':[]}
         f = lambda x: np.nan if i['value']=='.' else float(i['value'])
         for i in r['observations']:
-            data['value'].append(f(i))
-            data['date'].append(pd.to_datetime(i['date']))        
+            if i['value'] == '.':
+                continue
+            else:
+                data['value'].append(f(i))
+                data['date'].append(pd.to_datetime(i['date']))        
         
         df = pd.DataFrame(data)
 

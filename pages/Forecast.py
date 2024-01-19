@@ -24,7 +24,7 @@ st.set_page_config(
 # prev = str(date.today() - relativedelta(years=3))
 # today = '2023-12-31'
 prev = '2016-09-01'
-today = '2023-12-31'
+today = str(date.today())
 #%%
 fred = FRED()
 df_mgt = fred.get_fred_data(fred.fred_ids['mgt_rate'], prev, today, 'm')
@@ -46,8 +46,11 @@ df_ffr_fcst = pd.DataFrame()
 r = json.loads(requests.get(series_url, params=params).text)
 data = {'date':[], 'value':[]}
 for i in r['observations']:
-    data['value'].append(float(i['value']))
-    data['date'].append(pd.to_datetime(i['date']))
+    if i['value'] == '.':
+        continue
+    else:
+        data['value'].append(float(i['value']))
+        data['date'].append(pd.to_datetime(i['date']))
 df_ffr_fcst = pd.DataFrame(data)
 
 df = df_mgt.set_index('date').merge(df_cpi.set_index('date'), how='left',

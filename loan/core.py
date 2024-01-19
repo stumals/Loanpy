@@ -2,6 +2,7 @@ import numpy as np
 import numpy_financial as npf
 import pandas as pd
 import matplotlib.pyplot as plt
+from typing import Tuple
 
 from .loan_input import LoanInput
 from utils.npf_amort import amort
@@ -9,7 +10,7 @@ from utils.npf_amort import amort
 
 class Loan():
     
-    def __init__(self, loan_params: LoanInput):
+    def __init__(self, loan_params: LoanInput) -> None:
 
         self.asset_start_value = loan_params.asset_amt
         self.rate_annual = loan_params.rate_annual
@@ -88,6 +89,47 @@ class Loan():
         df['profit'] = df['home_value'] - df['home_sale_cost'] - df['cum_costs'] - self.asset_start_value*self.down_pmt - self.amt
 
         return df
+    
+    def rent_vs_buy(self, rent: int, rent_increase: float, mkt_return: float=.10,
+                    cap_gains_tax: float=.15, num_years_analysis: int=10) -> pd.DataFrame:
+
+        df = self.amort_table_detail()
+
+        df_rent = pd.DataFrame(data=((1+rent_increase)**(df['year'] - 1)) * rent).rename(columns={'year':'rent'})
+        df_rent['year'] = df['year']
+
+        df['diff'] = df_rent['rent'] - df['all_in_pmts']
+        df['diff'] = df['diff'].apply(lambda x: x if x > 0 else 0)
+
+        df_rent['diff'] = df['all_in_pmts'] - df_rent['rent']
+        df_rent['diff'] = df_rent['diff'].apply(lambda x: x if x > 0 else 0)
+
+        df['mkt_return'] = df['diff'].cumsum() * np.array([1+(mkt_return/self.pmt_freq)]*self.nper).cumprod()
+        df['diff_cumulative'] = df['diff'].cumsum()
+        df['cap_gains_cumulative'] = df['mkt_return'] - df['diff_cumulative']
+        df['cap_gains_tax'] = df['cap_gains_cumulative'] * cap_gains_tax
+        df['mkt_return_net'] = df['mkt_return'] - df['cap_gains_tax']
+        df['return_total'] = df['mkt_return_net'] + df['profit']
+
+        df_rent['mkt_return'] = df_rent['diff'].cumsum() * np.array([1+(mkt_return/self.pmt_freq)]*self.nper).cumprod()
+        df_rent['diff_cumulative'] = df_rent['diff'].cumsum()
+        df_rent['cap_gains_cumulative'] = df_rent['mkt_return'] - df_rent['diff_cumulative']
+        df_rent['cap_gains_tax'] = df_rent['cap_gains_cumulative'] * cap_gains_tax
+        df_rent['mkt_return_net'] = df_rent['mkt_return'] - df_rent['cap_gains_tax']
+        df_rent['rent_cumulative'] = df_rent['rent'].cumsum()
+        df_rent['return_total'] = df_rent['mkt_return_net'] - df_rent['rent_cumulative']
+
+        cols_df = ['year', 'profit', 'diff_cumulative', 'mkt_return_net', 'return_total']
+        cols_rent = ['year', 'rent', 'rent_cumulative', 'diff_cumulative', 'mkt_return_net', 'return_total']
+
+        df_year = df.loc[:, cols_df].groupby('year').max().reset_index()
+        df_rent_year = df_rent.loc[:, cols_rent].groupby('year').max().reset_index()
+        df_year = df_year[df_year['year']<=num_years_analysis]
+        df_rent_year = df_rent_year[df_rent_year['year']<=num_years_analysis]
+        
+        return (df_year, df_rent_year)
+
+
 
 
 

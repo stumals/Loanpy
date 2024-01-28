@@ -52,24 +52,29 @@ def rent_vs_buy_plot(df_year, df_rent_year):
     ax.legend()
     return fig
 
-col1, col2 = st.columns(2, )
-with col1:
-    st.pyplot(rent_vs_buy_plot(df_year, df_rent_year), use_container_width=True)
-    st.dataframe(df_year.style.format("{:,.0f}"))
-            
-with col2:
-    st.markdown(
-        '''
-        Rent vs Buy Analysis
-        - Compares profit from home ownership vs renting
-        - Difference of all in payments is invested in the market (home = down payment + mortgage payment + tax, etc. vs rent)
-        - Which ever has lower all in payment, the difference is invested (shown as diff_cumulative in dataframe)
-        - Market returns compund based on the Payment Frequency (typically monthly)
-        - Capital gains tax is subtracted from market returns
-        - Home Owner Total Return = profit from home ownership + market returns
-        - Renter Total Return = market return - rent
 
-        '''
-    )
-    st.dataframe(df_rent_year.style.format("{:,.0f}"))
+with st.container():
+    col1, col2 = st.columns(2, )
+    with col1:
+        st.pyplot(rent_vs_buy_plot(df_year, df_rent_year), use_container_width=True)
+    with col2:
+        st.markdown(
+            '''
+            Rent vs Buy Analysis
+            - Compares profit from home ownership vs renting
+            - Difference of all in payments is invested in the market (home = down payment + mortgage payment + tax, etc. vs rent)
+            - Which ever has lower all in payment, the difference is invested (shown as diff_cumulative in dataframe)
+            - Market returns compund based on the Payment Frequency (typically monthly)
+            - Capital gains tax is subtracted from market returns
+            - Home Owner Total Return = profit from home ownership + market returns
+            - Renter Total Return = market return - rent
+
+            '''
+        )
+with st.container():
+    col1, col2 = st.columns(2, )
+    with col1:
+        st.dataframe(df_year.style.format("{:,.0f}"))
+    with col2:
+        st.dataframe(df_rent_year.style.format("{:,.0f}"))
 

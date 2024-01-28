@@ -1,7 +1,7 @@
 #%%
 import pandas as pd
 
-from .fred_econ import FRED
+from econ.fred_econ import FRED
 from sklearn.linear_model import LinearRegression
 from sklearn.model_selection import TimeSeriesSplit, KFold
 import sklearn.metrics as metrics

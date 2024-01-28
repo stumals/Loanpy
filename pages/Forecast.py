@@ -13,7 +13,7 @@ from dotenv import load_dotenv, find_dotenv
 load_dotenv()
 
 from econ.fred_econ import FRED
-from econ.models import LinReg
+from models.models import LinReg
 
 st.set_page_config(
     layout='wide'

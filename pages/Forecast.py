@@ -27,9 +27,9 @@ prev = '2016-09-01'
 today = str(date.today())
 #%%
 fred = FRED()
-df_mgt = fred.get_fred_data(fred.fred_ids['mgt_rate'], prev, today, 'm')
-df_cpi = fred.get_fred_data(fred.fred_ids['cpi'], prev, today, 'm')
-df_ffr = fred.get_fred_data(fred.fred_ids['ffr'], prev, today, 'm')
+df_mgt = fred.get_fred_data('mgt_rate', prev, today, 'm')
+df_cpi = fred.get_fred_data('cpi', prev, today, 'm')
+df_ffr = fred.get_fred_data('ffr', prev, today, 'm')
 
 try:
     api_key = st.secrets["FRED_API_KEY"]
@@ -91,8 +91,8 @@ preds['ffr'] = df_ffr_new['value'].values
 
 def mgt_ffr_plot(df_mgt, df_ffr, df_preds):
     fig, ax = plt.subplots()
-    ax.plot(df_mgt['date'], df_mgt['value'], label='Mgt Rate', color='blue')
-    ax.plot(df_ffr['date'], df_ffr['value'], label='FFR', color='orange')
+    ax.plot(df_mgt['date'], df_mgt.iloc[:,1], label='Mgt Rate', color='blue')
+    ax.plot(df_ffr['date'], df_ffr.iloc[:,1], label='FFR', color='orange')
     ax.plot(df_preds['date'], df_preds['mean'], label='Mgt Fcst', color='blue', linestyle='--')
     ax.plot(df_preds['date'], df_preds['obs_ci_lower'], label='Mgt Lower', color='red', linestyle='--')
     ax.plot(df_preds['date'], df_preds['obs_ci_upper'], label='Mgt Upper', color='red', linestyle='--')

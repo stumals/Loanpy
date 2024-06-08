@@ -45,13 +45,23 @@ loan = Loan(params)
 df_year, df_rent_year = loan.rent_vs_buy(rent, rent_increase=rent_increase, mkt_return=mkt_return,
                                          cap_gains_tax=cap_gains_tax, num_years_analysis=num_years_analysis)
 
+# def rent_vs_buy_plot(df_year, df_rent_year):
+#     fig, ax = plt.subplots()
+#     ax.plot(df_year['year'], df_year['return_total'], label='home owner')
+#     ax.plot(df_rent_year['year'], df_rent_year['return_total'], label='renter')
+#     ax.legend()
+#     return fig
+
 def rent_vs_buy_plot(df_year, df_rent_year):
     fig, ax = plt.subplots()
-    ax.plot(df_year['year'], df_year['return_total'], label='home owner')
-    ax.plot(df_rent_year['year'], df_rent_year['return_total'], label='renter')
-    ax.legend()
+    ax.plot(df_year['year'], df_year['return_total'], label='Home Owner', color='blue', linewidth=2)
+    ax.plot(df_rent_year['year'], df_rent_year['return_total'], label='Renter', color='green', linewidth=2)
+    ax.set_title('Rent vs Buy Analysis', fontsize=16)
+    ax.set_xlabel('Year', fontsize=14)
+    ax.set_ylabel('Total Return', fontsize=14)
+    ax.grid(True)
+    ax.legend(fontsize=12)
     return fig
-
 
 with st.container():
     col1, col2 = st.columns(2, )
@@ -61,20 +71,23 @@ with st.container():
         st.markdown(
             '''
             Rent vs Buy Analysis
-            - Compares profit from home ownership vs renting
-            - Difference of all in payments is invested in the market (home = down payment + mortgage payment + tax, etc. vs rent)
-            - Which ever has lower all in payment, the difference is invested (shown as diff_cumulative in dataframe)
-            - Market returns compund based on the Payment Frequency (typically monthly)
-            - Capital gains tax is subtracted from market returns
-            - Home Owner Total Return = profit from home ownership + market returns
-            - Renter Total Return = market return - rent
-
+            - Compares the financial outcomes of home ownership and renting.
+            - Considers all payments related to home ownership (down payment, mortgage payment, taxes, etc.) and rent.
+            - If the cost of home ownership is lower than renting, the difference is invested in the market. This is shown as `diff_cumulative` in the dataframe.
+            - Market returns are compounded based on the Payment Frequency, which is typically monthly.
+            - Capital gains tax is deducted from market returns.
+            - Home Owner Total Return is calculated as the sum of profit from home ownership and market returns.
+            - Renter Total Return is calculated as the market return minus rent.
+            - The analysis helps in making an informed decision between renting and buying a home based on potential returns.
             '''
         )
+        
 with st.container():
     col1, col2 = st.columns(2, )
     with col1:
+        st.markdown('### Home Owner Data', unsafe_allow_html=True)
         st.dataframe(df_year.style.format("{:,.0f}"))
     with col2:
+        st.markdown('### Renter Data', unsafe_allow_html=True)
         st.dataframe(df_rent_year.style.format("{:,.0f}"))
 

@@ -15,15 +15,17 @@ prev = str(date.today() - relativedelta(years=5))
 #today = '2023-12-31'
 #%%
 fred = FRED()
-df_mgt = fred.get_fred_data(fred.fred_ids['mgt_rate'], prev, today, 'm')
-df_hpi = fred.get_fred_data(fred.fred_ids['home_price_index'], prev, today, 'm')
-df_ai = fred.get_fred_data(fred.fred_ids['afford_index'], prev, today, 'm')
-df_cpi = fred.get_fred_data(fred.fred_ids['cpi'], prev, today, 'm')
+df_mgt = fred.get_fred_data('mgt_rate', prev, today, 'm')
+df_hpi = fred.get_fred_data('home_price_index', prev, today, 'm')
+df_ai = fred.get_fred_data('afford_index', prev, today, 'm')
+df_cpi = fred.get_fred_data('cpi', prev, today, 'm')
+
+st.markdown("<h1 style='text-align: center; color: black;'>Economic Data</h1>", unsafe_allow_html=True)
 
 col1, col2 = st.columns(2, )
 
 with col1:
-    st.pyplot(fred.plot_mgt(df_mgt, '30 Year Mortgage Rate', 'Rate'), use_container_width=True)
+    st.pyplot(fred.plot(df_mgt, '30 Year Mortgage Rate', 'Rate'), use_container_width=True)
 
     st.pyplot(fred.plot(df_hpi, 'Home Price Index', 'Index'), use_container_width=True)
     st.markdown(

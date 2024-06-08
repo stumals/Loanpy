@@ -8,9 +8,13 @@ from loan.core import Loan
 from loan.plots import LoanPlots
 #%%
 
+
+
 st.set_page_config(
     layout='wide'
 )
+
+st.markdown("<h1 style='text-align: center; color: black;'>Mortgage Analysis</h1>", unsafe_allow_html=True)
 
 with st.sidebar:
     st.header("Input Parameters")

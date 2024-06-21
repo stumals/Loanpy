@@ -59,20 +59,6 @@ class FRED:
 
         return df
     
-    # def plot_mgt(self, df: pd.DataFrame, title: str, y_label: str):
-    #     fig, ax = plt.subplots()
-    #     ax.plot(df['date'], df.iloc[:,1])
-    #     ax.annotate(str(df.iloc[:,1].iloc[-1]) + '%', xy=(df['date'].max(), df.iloc[:,1].iloc[-1]),
-    #         xytext=(df['date'].iloc[-8], df.iloc[:,1].max()*.7),
-    #         arrowprops=dict(arrowstyle='->'),
-    #         )
-    #     ax.set_title(title)
-    #     ax.set_ylabel(y_label)
-    #     ax.set_xlabel('Date')
-    #     ax.grid(True)
-    #     fig.autofmt_xdate()
-    #     return fig
-    
     def plot(self, df: pd.DataFrame, title: str, y_label: str):
         fig, ax = plt.subplots()
         ax.plot(df['date'], df.iloc[:,1])
@@ -80,21 +66,18 @@ class FRED:
         last_value = round(df.iloc[:,1].iloc[-1], 2)
         annotation_text = f"Date: {last_date.strftime('%Y-%m-%d')}\nValue: {last_value}%"
         
-        # Draw the figure first to update the limits
         fig.canvas.draw()
 
-        # Get the limits of the x and y axes
         x_lim = ax.get_xlim()
         y_lim = ax.get_ylim()
 
-        # Calculate the x and y coordinates for the annotation text
         x_coord = x_lim[1] - (x_lim[1] - x_lim[0]) * 0.1
         y_coord = y_lim[0] + (y_lim[1] - y_lim[0]) * 0.1
         
         ax.annotate(annotation_text, xy=(last_date, last_value),
             xytext=(x_coord, y_coord),
             arrowprops=dict(arrowstyle='->'),
-            ha='right', va='bottom', # align the text to the right and bottom
+            ha='right', va='bottom',
             )
         ax.set_title(title)
         ax.set_ylabel(y_label)
@@ -102,14 +85,3 @@ class FRED:
         ax.grid(True)
         fig.autofmt_xdate()
         return fig
-    
-    # def plot(self, df: pd.DataFrame, title: str, y_label: str):
-    #     fig, ax = plt.subplots()
-    #     ax.plot(df['date'], df.iloc[:,1])
-    #     ax.set_title(title)
-    #     ax.set_ylabel(y_label)
-    #     ax.set_xlabel('Date')
-    #     ax.grid(True)
-    #     fig.autofmt_xdate()
-    #     return fig
-        

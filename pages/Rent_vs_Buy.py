@@ -13,6 +13,8 @@ st.set_page_config(
     layout='wide'
 )
 
+st.markdown("<h1 style='text-align: center; color: black;'>Rent vs Buy Analysis</h1>", unsafe_allow_html=True)
+
 with st.sidebar:
     st.header("Input Parameters")
     num_years_analysis = st.number_input("Years to Analyze", min_value=1, max_value=30, value=15, step=1)
@@ -45,18 +47,12 @@ loan = Loan(params)
 df_year, df_rent_year = loan.rent_vs_buy(rent, rent_increase=rent_increase, mkt_return=mkt_return,
                                          cap_gains_tax=cap_gains_tax, num_years_analysis=num_years_analysis)
 
-# def rent_vs_buy_plot(df_year, df_rent_year):
-#     fig, ax = plt.subplots()
-#     ax.plot(df_year['year'], df_year['return_total'], label='home owner')
-#     ax.plot(df_rent_year['year'], df_rent_year['return_total'], label='renter')
-#     ax.legend()
-#     return fig
 
 def rent_vs_buy_plot(df_year, df_rent_year):
     fig, ax = plt.subplots()
     ax.plot(df_year['year'], df_year['return_total'], label='Home Owner', color='blue', linewidth=2)
     ax.plot(df_rent_year['year'], df_rent_year['return_total'], label='Renter', color='green', linewidth=2)
-    ax.set_title('Rent vs Buy Analysis', fontsize=16)
+    #ax.set_title('Rent vs Buy Analysis', fontsize=16)
     ax.set_xlabel('Year', fontsize=14)
     ax.set_ylabel('Total Return', fontsize=14)
     ax.grid(True)
@@ -70,7 +66,6 @@ with st.container():
     with col2:
         st.markdown(
             '''
-            Rent vs Buy Analysis
             - Compares the financial outcomes of home ownership and renting.
             - Considers all payments related to home ownership (down payment, mortgage payment, taxes, etc.) and rent.
             - If the cost of home ownership is lower than renting, the difference is invested in the market. This is shown as `diff_cumulative` in the dataframe.
@@ -81,7 +76,7 @@ with st.container():
             - The analysis helps in making an informed decision between renting and buying a home based on potential returns.
             '''
         )
-        
+
 with st.container():
     col1, col2 = st.columns(2, )
     with col1:

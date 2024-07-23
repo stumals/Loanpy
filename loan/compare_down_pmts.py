@@ -69,7 +69,7 @@ class CompareDownPayments():
         #ax.set_xticks(x, ["{0:.1f}%".format(val * 100) for val in x])
         ax.xaxis.set_major_formatter(plt.FuncFormatter(lambda x, _: '{:.0%}'.format(x)))
         ax.yaxis.set_major_formatter(plt.FuncFormatter(lambda y, _: '${:,.0f}'.format(y)))
-        ax.set_ylim(ymin=summary_results['total_profit'].min()*.9, ymax=summary_results['total_profit'].max()*1.1)
+        ax.set_ylim(ymin=y.min()*.9, ymax=y.max()*1.1)
         ax.set_xlim(xmin=x[0])
         ax.set_xlabel('Down Payment')
         ax.set_ylabel('Total Profit')

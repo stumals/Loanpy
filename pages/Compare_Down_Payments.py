@@ -43,10 +43,10 @@ dwn_pmts = np.arange(0,1,.025).tolist()
 cdp = CompareDownPayments(loan, dwn_pmts)
 cdp.get_compare_down_pmts_data()
 cdp.compare_down_pmts(mkt_return=.10)
-results = cdp.get_summary(years_compare=10)
+results = cdp.get_summary(years_compare=num_years_analysis)
 cdp.plot_summary(results)
 
-with st.containter():
+with st.container():
     st.markdown(
         '''
         Details TBD

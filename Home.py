@@ -21,6 +21,6 @@ st.markdown(
     
     - **Rent vs Buy**: Compare the costs of renting versus buying a home to see which option is more financially beneficial for you.
     
-    - **Utility**: (Coming Soon) Additional tools to help you with your mortgage decisions.
+    - **Compare Down Payments**: Compare the profitability of various down payments.
     """
 )

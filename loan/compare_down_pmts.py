@@ -1,6 +1,7 @@
 #%%
 import pandas as pd
 import numpy as np
+import matplotlib.pyplot as plt
 
 from loan.core import Loan
 from loan.loan_input import LoanInput
@@ -52,4 +53,28 @@ class CompareDownPayments():
             v[1]['mkt_return'] = v[1]['diff'].cumsum() * np.array([1+(mkt_return/self.pmt_freq)]*self.nper).cumprod()
             v[1]['total_profit'] = v[1]['profit'] + v[1]['mkt_return']
 
+    def get_summary(self, years_compare=15) -> pd.DataFrame:
+        self.years_compare = years_compare
+        results_dict = {'down_pmt':[], 'total_profit':[]}
+        for k, v in self.loans_dict.items():
+            results_dict['down_pmt'].append(round(v[0],2))
+            results_dict['total_profit'].append(v[1]['total_profit'].iloc[self.pmt_freq*years_compare-1])
+        return pd.DataFrame(results_dict)
+    
+    def plot_summary(self, summary_results):
+        fig, ax = plt.subplots()
+        x = summary_results['down_pmt']
+        y = summary_results['total_profit']
+        ax.plot(x, y)
+        #ax.set_xticks(x, ["{0:.1f}%".format(val * 100) for val in x])
+        ax.xaxis.set_major_formatter(plt.FuncFormatter(lambda x, _: '{:.0%}'.format(x)))
+        ax.yaxis.set_major_formatter(plt.FuncFormatter(lambda y, _: '${:,.0f}'.format(y)))
+        ax.set_ylim(ymin=summary_results['total_profit'].min()*.9, ymax=summary_results['total_profit'].max()*1.1)
+        ax.set_xlim(xmin=x[0])
+        ax.set_xlabel('Down Payment')
+        ax.set_ylabel('Total Profit')
+        ax.set_title('Total Profit by Down Payment at Year {}'.format(self.years_compare))
+        ax.grid(True)
+
+        return fig
     

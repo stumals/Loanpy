@@ -10,13 +10,12 @@ from loan.loan_input import LoanInput
 class LoanPlots:
 
     def __init__(self, loan: Loan, num_years: int):
+        loan.check_years(num_years)
         self.loan = loan
         self.num_years = num_years
-        self.df = loan.amort_table_detail()
-        self.df = self.df[self.df['year']<=num_years]
-        min_x = self.df['year'].min()
-        max_x = self.df['year'].max()
-        self.domain = [min_x, max_x]
+        self.yearly = loan.yearly_summary()
+        self.yearly = self.yearly[self.yearly['year']<=num_years]
+        self.domain = [1, num_years]
     
     @staticmethod
     def get_bar_values(patches):
@@ -39,9 +38,10 @@ class LoanPlots:
         return bar_dict
     
     def payment(self, datalabels=3):
-        df_pmt = self.df[['year', 'principal', 'interest', 'pmi', 'prop_tax', 'maint']]
-        data = df_pmt.groupby('year').max().reset_index()
-        totals = data.sum(axis=1)
+        cols = ['principal', 'interest', 'pmi', 'prop_tax', 'maint']
+        data = self.yearly[cols] / self.loan.pmt_freq
+        data.insert(0, 'year', self.yearly['year'])
+        totals = data[cols].sum(axis=1)
         data = data.to_dict('Series')
         y = data['year']
         del data['year']
@@ -56,7 +56,7 @@ class LoanPlots:
         ax.set_ylabel('Payment')
         ax.set_title('Monthly Total Payments by Year')  
         ax.set_ylim(ymin=0, ymax=totals.max()*1.1)
-        ax.set_xlim(xmin=.5, xmax=df_pmt['year'].max()+.5)  
+        ax.set_xlim(xmin=.5, xmax=self.num_years+.5)
         
         # total data labels
         y_offset = 50
@@ -89,7 +89,7 @@ class LoanPlots:
         return fig
     
     def profit(self):
-        df_profit = self.df[['year', 'profit']].groupby('year').max().reset_index()
+        df_profit = self.yearly[['year', 'profit']]
         fig, ax = plt.subplots()
         ax.plot(df_profit.loc[:,'year'], df_profit.loc[:,'profit'])
         if df_profit.loc[:,'profit'].min() < 0:
@@ -101,7 +101,7 @@ class LoanPlots:
         return fig
     
     def home_value(self, cagr):
-        df_value = self.df[['year', 'home_value']].groupby('year').max().reset_index()
+        df_value = self.yearly[['year', 'home_value']]
         asset_start = pd.DataFrame({'year':0, 'home_value':self.loan.asset_start_value}, index=[0])
         df_value = pd.concat([asset_start, df_value]).reset_index(drop = True)
         fig, ax = plt.subplots()
@@ -132,16 +132,16 @@ class LoanPlots:
         return fig
     
     def profit_waterfall(self):
-        num_id = self.num_years*self.loan.pmt_freq-1
+        parts = self.loan.profit_breakdown(self.num_years)
         data = {}
-        data['Home Appr'] = self.df.loc[num_id, 'home_value'] - self.loan.amt - self.loan.asset_start_value*self.loan.down_pmt
-        data['Interest'] = -self.df.loc[:num_id, 'interest'].sum()
-        data['PMI'] = -self.df.loc[:num_id, 'pmi'].sum()
-        data['Maint'] = -self.df.loc[:num_id, 'maint'].sum()
-        data['Prop Tax'] = -self.df.loc[:num_id, 'prop_tax'].sum()
-        data['Broker Fees'] = -self.df.loc[num_id,'home_sale_cost'] - self.df.loc[0,'closing_costs']
+        data['Home Appr'] = parts['appreciation']
+        data['Interest'] = parts['interest']
+        data['PMI'] = parts['pmi']
+        data['Maint'] = parts['maint']
+        data['Prop Tax'] = parts['prop_tax']
+        data['Broker Fees'] = parts['home_sale_cost'] + parts['closing_costs']
+        data['Profit'] = parts['profit']
         data = pd.DataFrame(data, index=[0])
-        data['Profit'] = data.sum(axis=1)
         data = data.transpose().reset_index().rename(columns={'index':'type', 0:'value'})
         data = data[data['value'] != 0]
 

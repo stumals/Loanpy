@@ -82,3 +82,42 @@ def test_detail_invariants(rate, down, finance, freq):
     paid_in = df["down_pmt"].cumsum() + df["principal"].cumsum() + df["cum_costs"]
     proceeds = df["home_value"] - df["home_sale_cost"] - df["end_bal"]
     assert np.allclose(df["profit"], proceeds - paid_in)
+
+
+@pytest.mark.parametrize("finance", [False, True])
+def test_yearly_summary_counts_each_period_once(finance):
+    loan = make_loan(closing_cost=5000, closing_cost_finance=finance)
+    detail = loan.amort_table_detail()
+    yearly = loan.yearly_summary()
+
+    assert list(yearly["year"]) == list(range(1, 31))
+    for col in [
+        "principal",
+        "interest",
+        "pmi",
+        "prop_tax",
+        "maint",
+        "closing_costs",
+        "down_pmt",
+        "all_in_pmts",
+    ]:
+        assert yearly[col].sum() == pytest.approx(detail[col].sum())
+    year_ends = detail.groupby("year").tail(1).reset_index(drop=True)
+    for col in ["end_bal", "home_value", "profit"]:
+        assert np.allclose(yearly[col], year_ends[col])
+
+
+@pytest.mark.parametrize("finance", [False, True])
+@pytest.mark.parametrize("years", [1, 7, 30])
+def test_profit_breakdown_sums_to_profit(finance, years):
+    loan = make_loan(closing_cost=5000, closing_cost_finance=finance)
+    parts = loan.profit_breakdown(years)
+    profit = parts.pop("profit")
+    assert sum(parts.values()) == pytest.approx(profit)
+    assert profit == pytest.approx(loan.yearly_summary()["profit"].iloc[years - 1])
+    assert parts["closing_costs"] == -5000
+
+
+def test_profit_breakdown_rejects_years_past_the_loan_term():
+    with pytest.raises(ValueError, match="loan term"):
+        make_loan(num_years=15).profit_breakdown(16)

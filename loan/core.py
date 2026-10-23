@@ -89,6 +89,43 @@ class Loan():
 
         return df
     
+    def yearly_summary(self) -> pd.DataFrame:
+        '''
+        Returns one row per loan year
+
+        Payment columns are totals paid during the year:
+            pmt, principal, interest, pmi, prop_tax, maint, closing_costs, down_pmt, all_in_pmts
+        Balance and value columns are as of the last payment of the year:
+            end_bal, home_value, home_sale_cost, cum_costs, profit
+        '''
+        df = self.amort_table_detail()
+        by_year = df.groupby('year')
+        paid = by_year[['pmt', 'principal', 'interest', 'pmi', 'prop_tax', 'maint', 'closing_costs', 'down_pmt',
+                        'all_in_pmts']].sum()
+        held = by_year[['end_bal', 'home_value', 'home_sale_cost', 'cum_costs', 'profit']].last()
+        return paid.join(held).reset_index()
+
+    def profit_breakdown(self, num_years: int) -> dict:
+        '''
+        Splits the profit from selling at the end of year num_years into its parts, which sum to profit.
+        Costs are negative.
+        '''
+        self.check_years(num_years)
+        df = self.amort_table_detail()
+        held = df[df['year'] <= num_years]
+        end = held.iloc[-1]
+        parts = {
+            'appreciation': end['home_value'] - self.asset_start_value,
+            'interest': -held['interest'].sum(),
+            'pmi': -held['pmi'].sum(),
+            'prop_tax': -held['prop_tax'].sum(),
+            'maint': -held['maint'].sum(),
+            'closing_costs': -self.closing_cost,
+            'home_sale_cost': -end['home_sale_cost'],
+        }
+        parts['profit'] = end['profit']
+        return parts
+
     def check_years(self, num_years: int) -> None:
         '''
         Raises ValueError unless num_years is between 1 and the loan term

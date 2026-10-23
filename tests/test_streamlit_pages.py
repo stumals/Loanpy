@@ -29,3 +29,15 @@ def test_page_runs(page, monkeypatch):
     app = AppTest.from_file(str(ROOT / page), default_timeout=60)
     app.run()
     assert not app.exception, app.exception
+
+
+@pytest.mark.parametrize(
+    "page", ["pages/Mortgage_Analysis.py", "pages/Rent_vs_Buy.py", "pages/Compare_Down_Payments.py"]
+)
+def test_years_past_the_loan_term_show_an_error(page):
+    app = AppTest.from_file(str(ROOT / page), default_timeout=60)
+    app.run()
+    next(w for w in app.number_input if w.label == "Number of Year").set_value(10)
+    app.run()
+    assert not app.exception, app.exception
+    assert "can't be more than the loan term" in app.error[0].value

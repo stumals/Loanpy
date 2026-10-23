@@ -1,0 +1,49 @@
+{# A small (i) button that opens a native popover: no JavaScript needed. #}
+{% macro info(id, text, about) -%}
+<button type="button" class="info" popovertarget="i-{{ id }}" aria-label="About {{ about }}">i</button>
+<span id="i-{{ id }}" popover class="pop">{{ text }}</span>
+{%- endmacro %}
+
+{% macro calculator_form(form) -%}
+<form method="get" class="inputs" novalidate>
+  {% for fs in form.fieldsets %}
+  <fieldset>
+    <legend>{{ fs.legend }}</legend>
+    {% for f in fs.fields %}
+    {% set err = form.errors.get(f.name) %}
+    {% if f.is_check %}
+    <div class="field check">
+      <label><input type="checkbox" name="{{ f.name }}" value="1"{% if form.values.get(f.name) %} checked{% endif %}> {{ f.label }}</label>
+    </div>
+    {% else %}
+    <div class="field{% if err %} invalid{% endif %}">
+      <div class="field-label">
+        <label for="f-{{ f.name }}">{{ f.label }}</label>
+        {% if f.info %}{{ info(f.name, f.info, f.label|lower) }}{% endif %}
+      </div>
+      <div class="input">
+        {% if f.unit == "$" %}<span class="unit">$</span>{% endif %}
+        <input id="f-{{ f.name }}" name="{{ f.name }}" type="text" value="{{ form.raw[f.name] }}"
+          inputmode="{{ 'numeric' if f.unit == 'years' else 'decimal' }}" autocomplete="off"
+          {%- if err %} aria-invalid="true" aria-describedby="e-{{ f.name }}"{% endif %}>
+        {% if f.unit in ("%", "years") %}<span class="unit">{{ f.unit }}</span>{% endif %}
+      </div>
+      {% if err %}<p class="field-error" id="e-{{ f.name }}">{{ err }}</p>{% endif %}
+    </div>
+    {% endif %}
+    {% endfor %}
+  </fieldset>
+  {% endfor %}
+  <div class="actions">
+    <button type="submit">Calculate</button>
+    <a href="{{ request.path }}">Reset</a>
+  </div>
+</form>
+{%- endmacro %}
+
+{% macro stat(label, value, id=None, about=None) -%}
+<div class="stat">
+  <div class="stat-label">{{ label }}{% if about %} {{ info(id, about, label|lower) }}{% endif %}</div>
+  <div class="stat-value">{{ value }}</div>
+</div>
+{%- endmacro %}

@@ -1,0 +1,48 @@
+{% extends "calculator.html" %}
+{% from "_macros.html" import stat, info %}
+{% block title %}Compare down payments{% endblock %}
+{% block heading %}Compare down payments{% endblock %}
+{% block results %}
+<p class="headline">
+  After {{ r.years }} years, putting <strong>{{ r.best.down_pmt|percent }}</strong> down leaves you best off.
+  {{ info("method", "Every option spends the same each month: as much as the costliest option costs that month. Options that cost less invest the difference. Each total is the profit from selling the home, plus after-tax gains on money invested.", "how this works") }}
+</p>
+
+<div class="stats">
+  {{ stat("Best down payment", r.best.down_pmt|percent) }}
+  {{ stat("Total after " ~ r.years ~ " years", r.best.total_profit|money) }}
+  {{ stat("Monthly payment", r.best.pmt|money_cents, "payment", "Principal and interest.") }}
+</div>
+
+{% for chart in r.charts %}{{ chart }}{% endfor %}
+
+<h2>Every down payment</h2>
+<div class="table-scroll">
+  <table class="numbers">
+    <thead>
+      <tr>
+        <th scope="col">Down payment</th>
+        <th scope="col">Cash at closing</th>
+        <th scope="col">Loan amount</th>
+        <th scope="col">Monthly payment</th>
+        <th scope="col">Home profit</th>
+        <th scope="col">Investment gains</th>
+        <th scope="col">Total</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for row in r.rows %}
+      <tr{% if row.best %} class="best"{% endif %}>
+        <th scope="row">{{ row.down_pmt|percent }}{% if row.best %} <span class="tag">Best</span>{% endif %}</th>
+        <td>{{ row.cash_at_closing|money }}</td>
+        <td>{{ row.loan_amt|money }}</td>
+        <td>{{ row.pmt|money_cents }}</td>
+        <td>{{ row.profit|money }}</td>
+        <td>{{ row.mkt_gain|money }}</td>
+        <td>{{ row.total_profit|money }}</td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+{% endblock %}

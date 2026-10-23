@@ -1,0 +1,39 @@
+[project]
+name = "loanpy"
+version = "0.1.0"
+description = "Mortgage amortization, cost, and profitability analysis, with a plain HTML web front end"
+readme = "README.md"
+requires-python = ">=3.14"
+dependencies = [
+    "flask",
+    "numpy",
+    "numpy-financial",
+    "pandas",
+    "pydantic",
+    "python-dateutil",
+    "python-dotenv",
+    "requests",
+    "scikit-learn",
+    "statsmodels",
+]
+
+[dependency-groups]
+dev = ["pytest", "ruff"]
+# The original Streamlit dashboard (Home.py and pages/). Streamlit Cloud installs from requirements.txt.
+streamlit = ["altair", "matplotlib", "streamlit"]
+
+[tool.uv]
+package = false
+default-groups = ["dev", "streamlit"]
+
+[tool.pytest.ini_options]
+pythonpath = ["."]
+testpaths = ["test_loanpy.py", "tests"]
+filterwarnings = ["error::RuntimeWarning"]
+
+[tool.ruff]
+line-length = 120
+include = ["web/**/*.py", "tests/**/*.py"]
+
+[tool.ruff.lint]
+select = ["E", "F", "W", "I", "B", "UP"]

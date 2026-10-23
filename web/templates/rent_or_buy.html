@@ -1,0 +1,60 @@
+{% extends "calculator.html" %}
+{% from "_macros.html" import stat, info %}
+{% block title %}Rent or buy{% endblock %}
+{% block heading %}Rent or buy{% endblock %}
+{% block results %}
+<p class="headline">
+  After {{ r.years }} years,
+  {% if r.gap|round == 0 %}buying and renting come out even.
+  {% elif r.gap > 0 %}buying leaves you <strong>{{ r.gap|money }}</strong> ahead.
+  {% else %}renting leaves you <strong>{{ (-r.gap)|money }}</strong> ahead.
+  {% endif %}
+  {{ info("method", "Each month, the buyer and the renter spend the same amount: the full cost of owning or the rent, whichever is more. Whoever spends less on housing invests the difference. Each total is the wealth gained, net of everything spent, so the gap between them is the gap in net worth.", "how this works") }}
+</p>
+
+<div class="stats">
+  {{ stat("Buying", r.owner_total|money, "owner", "Profit from selling the home, plus after-tax gains on money invested.") }}
+  {{ stat("Renting", r.renter_total|money, "renter", "After-tax gains on money invested, less all rent paid.") }}
+  {{ stat("Buying pulls ahead", "Year " ~ r.breakeven if r.breakeven else "Not within " ~ r.years ~ " years") }}
+</div>
+
+{% for chart in r.charts %}{{ chart }}{% endfor %}
+
+<h2>Year by year</h2>
+<div class="table-scroll">
+  <table class="numbers">
+    <thead>
+      <tr>
+        <th scope="col" rowspan="2">Year</th>
+        <th scope="col" rowspan="2">Monthly rent</th>
+        <th scope="colgroup" colspan="3" class="group">Buy</th>
+        <th scope="colgroup" colspan="3" class="group">Rent</th>
+        <th scope="col" rowspan="2">Buying ahead by</th>
+      </tr>
+      <tr>
+        <th scope="col">Home profit</th>
+        <th scope="col">Investment gains</th>
+        <th scope="col">Total</th>
+        <th scope="col">Rent paid</th>
+        <th scope="col">Investment gains</th>
+        <th scope="col">Total</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for row in r.rows %}
+      <tr>
+        <th scope="row">{{ row.year }}</th>
+        <td>{{ row.rent|money }}</td>
+        <td>{{ row.profit|money }}</td>
+        <td>{{ row.owner_gain|money }}</td>
+        <td>{{ row.owner_total|money }}</td>
+        <td>{{ row.rent_paid|money }}</td>
+        <td>{{ row.renter_gain|money }}</td>
+        <td>{{ row.renter_total|money }}</td>
+        <td>{{ row.gap|money }}</td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+{% endblock %}

@@ -1,0 +1,19 @@
+{% extends "base.html" %}
+{% block content %}
+<h1>{{ title }}</h1>
+{% if kind == "no_key" %}
+<div class="message warning" role="alert">This page needs a free API key from FRED, the Federal Reserve Bank of St. Louis's data service.</div>
+<ol>
+  <li><a href="https://fredaccount.stlouisfed.org/apikeys">Request a FRED API key</a>.</li>
+  <li>Add it to the <code>.env</code> file in the Loanpy folder: <code>FRED_API_KEY=your-key</code></li>
+  <li>Restart the server.</li>
+</ol>
+{% elif kind == "refused" %}
+<div class="message error" role="alert">FRED refused the request. Check that <code>FRED_API_KEY</code> in <code>.env</code> is a valid key, then restart the server.</div>
+{% elif kind == "unreachable" %}
+<div class="message error" role="alert">Couldn't reach FRED. Check your internet connection, then reload this page.</div>
+{% else %}
+<div class="message error" role="alert">FRED didn't send the data this page needs. Try again later.</div>
+{% endif %}
+<p>The <a href="/mortgage">mortgage</a>, <a href="/rent-or-buy">rent or buy</a>, and <a href="/down-payments">down payment</a> calculators work without FRED.</p>
+{% endblock %}

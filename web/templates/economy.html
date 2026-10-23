@@ -1,0 +1,39 @@
+{% extends "base.html" %}
+{% from "_macros.html" import info %}
+{% block content %}
+<h1>{{ title }}</h1>
+<p>Monthly values for the last five years, from <a href="https://fred.stlouisfed.org/">FRED</a> at the Federal Reserve Bank of St. Louis.</p>
+
+<div class="small-multiples">
+  {% for s in r.series %}
+  <section class="series">
+    <h2>{{ s.title }} {{ info(s.id, s.info, s.title|lower) }}</h2>
+    <div class="stat-value">{{ s.latest }}</div>
+    <div class="as-of">{{ s.as_of }}</div>
+    {{ s.chart }}
+  </section>
+  {% endfor %}
+</div>
+
+<details>
+  <summary>Monthly values</summary>
+  <div class="table-scroll">
+    <table class="numbers">
+      <thead>
+        <tr>
+          <th scope="col">Month</th>
+          {% for s in r.series %}<th scope="col">{{ s.title }}</th>{% endfor %}
+        </tr>
+      </thead>
+      <tbody>
+        {% for row in r.rows %}
+        <tr>
+          <th scope="row">{{ row.month }}</th>
+          {% for cell in row.cells %}<td>{{ cell }}</td>{% endfor %}
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</details>
+{% endblock %}

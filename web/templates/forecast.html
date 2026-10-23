@@ -1,0 +1,94 @@
+{% extends "base.html" %}
+{% from "_macros.html" import stat, info %}
+{% block content %}
+<h1>{{ title }}</h1>
+<p>A baseline forecast of the 30-year mortgage rate from the fed funds rate, using the Federal Reserve's own projections.</p>
+
+<div class="stats">
+  {{ stat("Mortgage rate, " ~ r.as_of, r.mortgage_now|rate) }}
+  {{ stat("Fed funds rate, " ~ r.as_of, r.ffr_now|rate(3), "ffr", "Midpoint of the Federal Reserve's target range.") }}
+  {% set next = r.year_ends[0] %}
+  {{ stat("Forecast, " ~ next.date.strftime("%B %Y"), next["mean"]|rate, "next",
+     "95% prediction interval: " ~ next.obs_ci_lower|rate ~ " to " ~ next.obs_ci_upper|rate ~ ".") }}
+</div>
+
+{% for chart in r.charts %}{{ chart }}{% endfor %}
+
+<h2>Year-end forecast</h2>
+<div class="table-scroll"><table class="numbers">
+  <thead>
+    <tr>
+      <th scope="col">Year end</th>
+      <th scope="col">Fed funds projection</th>
+      <th scope="col">Mortgage rate forecast</th>
+      <th scope="col">95% prediction interval</th>
+    </tr>
+  </thead>
+  <tbody>
+    {% for row in r.year_ends %}
+    <tr>
+      <th scope="row">{{ row.date.strftime("%b %Y") }}</th>
+      <td>{{ row.ffr|rate(3) }}</td>
+      <td>{{ row["mean"]|rate }}</td>
+      <td>{{ row.obs_ci_lower|rate }} to {{ row.obs_ci_upper|rate }}</td>
+    </tr>
+    {% endfor %}
+  </tbody>
+</table></div>
+
+<details>
+  <summary>How the forecast works</summary>
+  <ul>
+    <li>A linear regression predicts the mortgage rate from one input: the fed funds rate, the midpoint of the Federal Reserve's target range. It's fit on monthly data since September 2016.</li>
+    <li>The fed funds path runs in straight lines from today's rate through each year-end projection in the Fed's <a href="https://fred.stlouisfed.org/series/FEDTARCTM">Summary of Economic Projections</a> (midpoint of the central tendency).</li>
+    <li>The shaded band is a 95% prediction interval for each month.</li>
+    <li>The model is tested with five-fold time-series cross-validation. Each fold trains on earlier months and tests on the months after them.</li>
+  </ul>
+  <div class="table-scroll"><table class="numbers">
+    <thead>
+      <tr>
+        <th scope="col">Fold</th>
+        <th scope="col">Training error (MSE)</th>
+        <th scope="col">Test error (MSE)</th>
+        <th scope="col">Adjusted R&sup2;</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for row in r.cv %}
+      <tr>
+        <th scope="row">{{ "Average" if row.folds == "Avg" else row.folds + 1 }}</th>
+        <td>{{ row.mse_train|number(3) }}</td>
+        <td>{{ row.mse_test|number(3) }}</td>
+        <td>{{ row.r2|number(3) }}</td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table></div>
+</details>
+
+<details>
+  <summary>Monthly values</summary>
+  <div class="table-scroll">
+    <table class="numbers">
+      <thead>
+        <tr>
+          <th scope="col">Month</th>
+          <th scope="col">Mortgage rate</th>
+          <th scope="col">Fed funds rate</th>
+          <th scope="col">95% prediction interval</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for row in r.months %}
+        <tr>
+          <th scope="row">{{ row.date.strftime("%b %Y") }}{% if row.forecast %} <span class="tag">Forecast</span>{% endif %}</th>
+          <td>{{ row.mgt_rate|rate }}</td>
+          <td>{{ row.ffr|rate(3) }}</td>
+          <td>{% if row.forecast %}{{ row.lower|rate }} to {{ row.upper|rate }}{% endif %}</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</details>
+{% endblock %}

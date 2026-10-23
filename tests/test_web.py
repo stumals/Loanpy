@@ -1,6 +1,8 @@
 import re
 import subprocess
 import sys
+import threading
+import time
 from pathlib import Path
 
 import pytest
@@ -8,6 +10,7 @@ import pytest
 from econ.fred_econ import FREDError
 from tests.fakes import TODAY, FakeFRED
 from web import analysis, create_app, fmt
+from web.app import TTLCache
 from web.forms import MORTGAGE_FORM, read_form
 
 ROOT = Path(__file__).resolve().parent.parent
@@ -165,3 +168,44 @@ def test_web_app_does_not_load_streamlit_or_matplotlib():
         "assert not loaded, loaded"
     )
     subprocess.run([sys.executable, "-c", code], cwd=ROOT, check=True)
+
+
+def test_forecast_without_projections_explains_instead_of_crashing():
+    client = create_app(
+        {"FRED_CLIENT": lambda: FakeFRED(projections={}), "TODAY": TODAY, "TESTING": True}
+    ).test_client()
+    assert "FRED didn't send the data" in page(client, "/forecast", status=502)
+
+
+def test_cache_keys_wait_only_for_themselves():
+    cache = TTLCache(ttl=60, failure_ttl=60)
+    started, release = threading.Event(), threading.Event()
+
+    def slow():
+        started.set()
+        release.wait(5)
+        return "slow"
+
+    worker = threading.Thread(target=cache.get, args=("economy", slow))
+    worker.start()
+    started.wait(5)
+    began = time.monotonic()
+    assert cache.get("forecast", lambda: "fast") == "fast"
+    assert time.monotonic() - began < 1
+    release.set()
+    worker.join(5)
+    assert cache.get("economy", lambda: "recomputed") == "slow"
+
+
+def test_cache_remembers_failures_briefly():
+    cache = TTLCache(ttl=60, failure_ttl=60)
+    calls = []
+
+    def failing():
+        calls.append(1)
+        raise FREDError("down", "unreachable")
+
+    for _ in range(3):
+        with pytest.raises(FREDError):
+            cache.get("economy", failing)
+    assert len(calls) == 1

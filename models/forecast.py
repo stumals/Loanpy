@@ -5,7 +5,7 @@ import numpy as np
 import pandas as pd
 import statsmodels.api as sm
 
-from econ.fred_econ import FRED, FREDError
+from econ.fred_econ import FRED, FREDError, fetch_all
 from models.models import LinReg
 
 HISTORY_START = '2016-09-01'
@@ -51,9 +51,11 @@ def rate_forecast(fred: FRED, start: str = HISTORY_START, today: date | None = N
     '''
     today = today or date.today()
     end = today.isoformat()
-    history = fred.get_fred_data('mgt_rate', start, end, 'm')
-    history = history.merge(fred.get_fred_data('ffr', start, end, 'm'), on='date')
-    history = history.merge(fred.get_fred_data('ffr_lower', start, end, 'm'), on='date')
+    data = fetch_all(fred, {'mgt_rate': ('mgt_rate', start, end, 'm'),
+                            'ffr': ('ffr', start, end, 'm'),
+                            'ffr_lower': ('ffr_lower', start, end, 'm'),
+                            'projections': ('ffr_fcst', f'{today.year}-01-01')})
+    history = data['mgt_rate'].merge(data['ffr'], on='date').merge(data['ffr_lower'], on='date')
     if len(history) < 24:
         raise FREDError(f'FRED returned only {len(history)} months of rates since {start}', 'no_data')
     history['ffr'] = (history['ffr'] + history['ffr_lower']) / 2
@@ -63,7 +65,7 @@ def rate_forecast(fred: FRED, start: str = HISTORY_START, today: date | None = N
     cv = model.test()
     model.train()
 
-    projections = fred.get_fred_data('ffr_fcst', f'{today.year}-01-01').rename(columns={'ffr_fcst': 'ffr'})
+    projections = data['projections'].rename(columns={'ffr_fcst': 'ffr'})
     projections['date'] = pd.to_datetime({'year': projections['date'].dt.year, 'month': 12, 'day': 1})
 
     path = fed_funds_path(history['date'].iloc[-1], history['ffr'].iloc[-1], projections)

@@ -109,3 +109,8 @@ def test_nice_ticks_cover_the_range(lo, hi):
     assert 2 <= len(ticks) <= 12
     steps = {round(b - a, 9) for a, b in zip(ticks, ticks[1:], strict=False)}
     assert len(steps) == 1
+
+
+def test_lines_ending_at_the_same_value_render():
+    markup = year_chart([charts.Line("A", [1, 2], [0, 50], 1), charts.Line("B", [1, 2], [10, 50], 2)])
+    assert str(markup).count('class="label"') == 0

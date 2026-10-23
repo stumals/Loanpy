@@ -155,7 +155,7 @@ def _hover_columns(frame: _Frame, columns: dict[float, list[str]], x_label: Call
 
 def _end_labels(frame: _Frame, lines: Sequence[Line], value: Callable[[float], str]) -> list[str]:
     """Value at the end of each line, unless two would collide; then the legend and hover carry it."""
-    ends = sorted((frame.y(line.ys[-1]), line) for line in lines)
+    ends = sorted(((frame.y(line.ys[-1]), line) for line in lines), key=lambda end: end[0])
     if len(ends) > 4 or any(b[0] - a[0] < 14 for a, b in zip(ends, ends[1:], strict=False)):
         return []
     out = []
@@ -246,12 +246,12 @@ def stacked_bars(
     ticks = nice_ticks(min(xs), max(xs), 8, whole=True)
     frame = _Frame(xs, totals, width, height, y_tick, x_tick, ticks, 16, 0.5, include_zero=True)
     slot_width = frame.x(xs[1]) - frame.x(xs[0]) if len(xs) > 1 else 40
-    width = min(BAR_MAX, slot_width * 0.6)
+    bar_width = min(BAR_MAX, slot_width * 0.6)
 
     body = frame.axes()
     columns: dict[float, list[str]] = {}
     for i, x in enumerate(xs):
-        left = frame.x(x) - width / 2
+        left = frame.x(x) - bar_width / 2
         segments = [(s, s.values[i]) for s in stacks if s.values[i] > 0]
         running = 0.0
         for j, (stack, value) in enumerate(segments):
@@ -263,7 +263,7 @@ def stacked_bars(
             bottom_px -= 0 if j == 0 else GAP / 2
             if bottom_px - top_px < 0.5:
                 continue
-            body.append(f'<path class="bar f{stack.slot}" d="{_bar_path(left, top_px, width, bottom_px, last)}"/>')
+            body.append(f'<path class="bar f{stack.slot}" d="{_bar_path(left, top_px, bar_width, bottom_px, last)}"/>')
         columns[x] = [f"{s.label}: {y_value(s.values[i])}" for s in stacks] + [f"Total: {y_value(totals[i])}"]
     body += _hover_columns(frame, columns, x_label)
 

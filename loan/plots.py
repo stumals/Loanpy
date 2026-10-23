@@ -39,8 +39,8 @@ class LoanPlots:
     
     def payment(self, datalabels=3):
         cols = ['principal', 'interest', 'pmi', 'prop_tax', 'maint']
-        data = self.yearly[cols] / self.loan.pmt_freq
-        data.insert(0, 'year', self.yearly['year'])
+        data = self.loan.average_payment_by_year()
+        data = data[data['year']<=self.num_years]
         totals = data[cols].sum(axis=1)
         data = data.to_dict('Series')
         y = data['year']

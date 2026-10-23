@@ -1,5 +1,6 @@
 import os
 import sys
+from concurrent.futures import ThreadPoolExecutor
 
 import pandas as pd
 import requests
@@ -33,6 +34,16 @@ def default_api_key() -> str | None:
         except Exception:
             pass
     return os.environ.get('FRED_API_KEY') or os.environ.get('fred_api_key')
+
+
+def fetch_all(fred, requests_by_name: dict) -> dict:
+    '''
+    Runs several fred.get_fred_data calls at once. requests_by_name maps a name to the call's arguments;
+    returns the same names mapped to their DataFrames. Raises the first FREDError if any call fails.
+    '''
+    with ThreadPoolExecutor(max_workers=len(requests_by_name) or 1) as pool:
+        futures = {name: pool.submit(fred.get_fred_data, *args) for name, args in requests_by_name.items()}
+        return {name: future.result() for name, future in futures.items()}
 
 
 class FRED:
@@ -88,13 +99,9 @@ class FRED:
         if not isinstance(body.get('observations'), list):
             raise FREDError(f'FRED returned no observations for {fred_id}', 'no_data')
 
-        data = {'date': [], data_id: []}
-        for i in body['observations']:
-            if i['value'] == '.':
-                continue
-            data[data_id].append(float(i['value']))
-            data['date'].append(pd.to_datetime(i['date']))
-        return pd.DataFrame(data)
+        observations = [i for i in body['observations'] if i['value'] != '.']
+        return pd.DataFrame({'date': pd.to_datetime([i['date'] for i in observations]),
+                             data_id: [float(i['value']) for i in observations]})
 
     def plot(self, df: pd.DataFrame, title: str, y_label: str):
         import matplotlib.pyplot as plt

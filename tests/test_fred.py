@@ -3,7 +3,7 @@ import pytest
 import requests
 
 from econ import fred_econ
-from econ.fred_econ import FRED, FREDError
+from econ.fred_econ import FRED, FREDError, fetch_all
 from models.forecast import fed_funds_path, rate_forecast
 from tests.fakes import TODAY, FakeFRED
 
@@ -138,3 +138,31 @@ def test_rate_forecast():
 
     assert list(fc.projections["date"].dt.month.unique()) == [12]
     assert list(fc.cv["folds"]) == [0, 1, 2, 3, 4, "Avg"]
+
+
+def test_empty_answer_keeps_dates_typed(http):
+    http.response = FakeResponse(200, {"observations": [{"date": "2026-01-01", "value": "."}]})
+    df = FRED(api_key="k").get_fred_data("ffr_fcst", "2026-01-01")
+    assert df.empty
+    assert pd.api.types.is_datetime64_any_dtype(df["date"])
+
+
+def test_forecast_without_projections_is_a_no_data_error():
+    with pytest.raises(FREDError) as e:
+        rate_forecast(FakeFRED(projections={}), today=TODAY)
+    assert e.value.kind == "no_data"
+
+
+def test_fetch_all_maps_names_to_results_and_raises_failures():
+    data = fetch_all(FakeFRED(), {"m": ("mgt_rate", "2026-01-01"), "c": ("cpi", "2026-01-01")})
+    assert list(data["m"].columns) == ["date", "mgt_rate"]
+    assert list(data["c"].columns) == ["date", "cpi"]
+
+    class Broken(FakeFRED):
+        def get_fred_data(self, data_id, *args):
+            if data_id == "cpi":
+                raise FREDError("down", "unreachable")
+            return super().get_fred_data(data_id, *args)
+
+    with pytest.raises(FREDError):
+        fetch_all(Broken(), {"m": ("mgt_rate", "2026-01-01"), "c": ("cpi", "2026-01-01")})

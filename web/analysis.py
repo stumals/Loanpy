@@ -7,7 +7,7 @@ from datetime import date
 import pandas as pd
 from dateutil.relativedelta import relativedelta
 
-from econ.fred_econ import FRED, FREDError
+from econ.fred_econ import FRED, FREDError, fetch_all
 from loan.compare_down_pmts import CompareDownPayments
 from loan.core import Loan
 from loan.loan_input import LoanInput
@@ -71,7 +71,8 @@ def mortgage(values: dict) -> dict:
     yearly = loan.yearly_summary()
     yearly = yearly[yearly["year"] <= years]
     parts = loan.profit_breakdown(years)
-    first = yearly.iloc[0]
+    average = loan.average_payment_by_year()
+    average = average[average["year"] <= years]
     monthly_costs = ["principal", "interest", "pmi", "prop_tax", "maint"]
 
     xs = list(yearly["year"])
@@ -85,7 +86,7 @@ def mortgage(values: dict) -> dict:
     payments_chart = stacked_bars(
         "Average monthly payment",
         xs,
-        [Stack(labels[c], list(yearly[c] / MONTHS), slot) for slot, c in enumerate(monthly_costs, 1)],
+        [Stack(labels[c], list(average[c]), slot) for slot, c in enumerate(monthly_costs, 1)],
         y_tick=fmt.money_short,
         y_value=fmt.money,
         x_tick=_year_tick,
@@ -126,8 +127,8 @@ def mortgage(values: dict) -> dict:
         "years": years,
         "loan_amt": loan.amt,
         "payment": loan.pmt,
-        "first_year_monthly": first[monthly_costs].sum() / MONTHS,
-        "cash_at_closing": first["down_pmt"] + first["closing_costs"],
+        "first_year_monthly": average[monthly_costs].iloc[0].sum(),
+        "cash_at_closing": loan.cash_at_closing,
         "profit": parts["profit"],
         "breakdown": [(label, amount) for label, amount in breakdown if round(amount)],
         "rows": yearly.to_dict("records"),
@@ -174,9 +175,9 @@ def rent_vs_buy(values: dict) -> dict:
             "rent_paid": r["rent_cumulative"],
             "renter_gain": r["mkt_gain_net"],
             "renter_total": r["return_total"],
-            "gap": o["return_total"] - r["return_total"],
+            "gap": g,
         }
-        for o, r in zip(owner.to_dict("records"), renter.to_dict("records"), strict=True)
+        for o, r, g in zip(owner.to_dict("records"), renter.to_dict("records"), gap, strict=True)
     ]
     return {
         "years": years,
@@ -212,7 +213,6 @@ def down_payments(values: dict) -> dict:
     )
     rows = summary.to_dict("records")
     for row in rows:
-        row["cash"] = values["price"] * row["down_pmt"] + (0 if values["finance_closing"] else values["closing"])
         row["best"] = row["down_pmt"] == best["down_pmt"]
     return {"years": years, "best": best.to_dict(), "rows": rows, "charts": [chart]}
 
@@ -252,8 +252,9 @@ def economy(fred: FRED, today: date) -> dict:
     start = (today - relativedelta(years=5)).isoformat()
     series = []
     by_month: dict[pd.Timestamp, dict[str, str]] = {}
+    data = fetch_all(fred, {spec["id"]: (spec["id"], start, today.isoformat(), "m") for spec in ECONOMIC_SERIES})
     for spec in ECONOMIC_SERIES:
-        df = fred.get_fred_data(spec["id"], start, today.isoformat(), "m")
+        df = data[spec["id"]]
         if df.empty:
             raise FREDError(f"FRED returned no data for {spec['id']} since {start}", "no_data")
         values = df[spec["id"]]

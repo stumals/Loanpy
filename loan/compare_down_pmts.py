@@ -65,6 +65,7 @@ class CompareDownPayments():
 
         Table columns:
             down_pmt - down payment percentage
+            cash_at_closing - down payment, plus closing costs unless they're added to the loan
             loan_amt - amount borrowed
             pmt - mortgage payment per period
             profit - profit if the home were sold
@@ -74,7 +75,7 @@ class CompareDownPayments():
         self.loan.check_years(years_compare)
         self.years_compare = years_compare
         i = self.pmt_freq*years_compare-1
-        rows = [{'down_pmt': d, 'loan_amt': loan.amt, 'pmt': loan.pmt, 'profit': df['profit'].iloc[i],
+        rows = [{'down_pmt': d, 'cash_at_closing': loan.cash_at_closing, 'loan_amt': loan.amt, 'pmt': loan.pmt, 'profit': df['profit'].iloc[i],
                  'mkt_gain': df['mkt_gain'].iloc[i], 'total_profit': df['total_profit'].iloc[i]}
                 for d, df, loan in self.loans_dict.values()]
         return pd.DataFrame(rows)

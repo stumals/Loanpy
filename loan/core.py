@@ -31,6 +31,14 @@ class Loan():
         self.maint = loan_params.maint_rate
         self.appr_rate = loan_params.home_value_appreciation
         self.amort_table = amort(self.amt, self.nper, self.pmt, self.pmt_freq, self.rate)
+        self._detail = None
+
+    @property
+    def cash_at_closing(self) -> float:
+        '''
+        Down payment, plus closing costs unless they're added to the loan
+        '''
+        return self.asset_start_value*self.down_pmt + (0 if self.closing_cost_finance else self.closing_cost)
 
     def amort_table_detail(self) -> pd.DataFrame:
         '''
@@ -54,9 +62,13 @@ class Loan():
             cum_costs - cumulative costs each period
             all_in_pmts - total dollars spent by period: pmt + pmi + prop_tax + maint + closing_costs + down_pmt
             down_pmt - down payment on loan in period 0
-            profit - home value at each period less home_sale_cost, cum_costs, down_pmt, end_bal (remaining loan balance)      
+            profit - home value at each period less home_sale_cost, cum_costs, down_pmt, end_bal (remaining loan balance)
         '''
+        if self._detail is None:
+            self._detail = self._build_detail()
+        return self._detail.copy()
 
+    def _build_detail(self) -> pd.DataFrame:
         df = self.amort_table.copy()
         df['home_value'] = self.asset_start_value * np.array([1+(self.appr_rate/self.pmt_freq)]*self.nper).cumprod()
         df['ltv_ratio'] = df['end_bal'] / df['home_value']
@@ -104,6 +116,16 @@ class Loan():
                         'all_in_pmts']].sum()
         held = by_year[['end_bal', 'home_value', 'home_sale_cost', 'cum_costs', 'profit']].last()
         return paid.join(held).reset_index()
+
+    def average_payment_by_year(self) -> pd.DataFrame:
+        '''
+        Returns one row per loan year with the average payment that year, split into
+        principal, interest, pmi, prop_tax, and maint
+        '''
+        yearly = self.yearly_summary()
+        average = yearly[['principal', 'interest', 'pmi', 'prop_tax', 'maint']] / self.pmt_freq
+        average.insert(0, 'year', yearly['year'])
+        return average
 
     def profit_breakdown(self, num_years: int) -> dict:
         '''

@@ -24,7 +24,8 @@ class FakeFRED:
 
     def __init__(self, projections=None):
         self.monthly = _monthly_series()
-        projections = projections or {2026: 4.25, 2027: 4.0, 2028: 3.6, 2029: 3.35}
+        if projections is None:
+            projections = {2026: 4.25, 2027: 4.0, 2028: 3.6, 2029: 3.35}
         self.projections = pd.DataFrame(
             {
                 "date": pd.to_datetime([f"{y}-01-01" for y in projections]),

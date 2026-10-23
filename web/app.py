@@ -31,23 +31,40 @@ SECURITY_HEADERS = {
 }
 
 FRED_CACHE_SECONDS = 3600
+FRED_FAILURE_SECONDS = 60
 
 
 class TTLCache:
-    """Remembers each computed value for ttl seconds. Failures aren't cached."""
+    """Remembers each computed value for ttl seconds, and each failure for failure_ttl seconds.
 
-    def __init__(self, ttl: float) -> None:
-        self.ttl = ttl
+    Each key has its own lock: requests for one key wait for a single computation instead of
+    repeating it, and never wait on another key.
+    """
+
+    def __init__(self, ttl: float, failure_ttl: float) -> None:
+        self.ttl, self.failure_ttl = ttl, failure_ttl
         self.lock = threading.Lock()
-        self.items: dict = {}
+        self.key_locks: dict = {}
+        self.items: dict = {}  # key -> (time, value, error)
 
     def get(self, key, compute):
         with self.lock:
+            key_lock = self.key_locks.setdefault(key, threading.Lock())
+        with key_lock:
             hit = self.items.get(key)
-            if hit and time.monotonic() - hit[0] < self.ttl:
-                return hit[1]
-            value = compute()
-            self.items[key] = (time.monotonic(), value)
+            if hit:
+                stored, value, error = hit
+                age = time.monotonic() - stored
+                if error is None and age < self.ttl:
+                    return value
+                if error is not None and age < self.failure_ttl:
+                    raise error
+            try:
+                value = compute()
+            except Exception as e:
+                self.items[key] = (time.monotonic(), None, e)
+                raise
+            self.items[key] = (time.monotonic(), value, None)
             return value
 
 
@@ -66,7 +83,7 @@ def create_app(config: dict | None = None) -> Flask:
 
     for name in ("money", "money_cents", "signed_money", "percent", "rate", "number"):
         app.add_template_filter(getattr(fmt, name), name)
-    cache = TTLCache(FRED_CACHE_SECONDS)
+    cache = TTLCache(FRED_CACHE_SECONDS, FRED_FAILURE_SECONDS)
 
     @app.context_processor
     def nav():

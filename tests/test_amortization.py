@@ -119,3 +119,23 @@ def test_profit_breakdown_sums_to_profit(finance, years):
 def test_profit_breakdown_rejects_years_past_the_loan_term():
     with pytest.raises(ValueError, match="loan term"):
         make_loan(num_years=15).profit_breakdown(16)
+
+
+@pytest.mark.parametrize("finance, cash", [(False, 60000 + 5000), (True, 60000)])
+def test_cash_at_closing(finance, cash):
+    assert make_loan(down_pmt=0.2, closing_cost=5000, closing_cost_finance=finance).cash_at_closing == cash
+
+
+def test_average_payment_by_year_is_yearly_totals_per_payment():
+    loan = make_loan(pmt_freq=26)
+    average, yearly = loan.average_payment_by_year(), loan.yearly_summary()
+    for col in ["principal", "interest", "pmi", "prop_tax", "maint"]:
+        assert np.allclose(average[col] * 26, yearly[col])
+
+
+def test_detail_is_computed_once_and_callers_get_their_own_copy():
+    loan = make_loan()
+    first = loan.amort_table_detail()
+    first["profit"] = 0
+    assert loan.amort_table_detail()["profit"].iloc[-1] != 0
+    assert loan._detail is not None

@@ -1,27 +1,51 @@
 import os
-import requests
-import pandas as pd
-import numpy as np
-import json
-import matplotlib.pyplot as plt
-import streamlit as st
+import sys
 
-from dotenv import load_dotenv, find_dotenv
+import pandas as pd
+import requests
+from dotenv import load_dotenv
+
 load_dotenv()
 
-class FRED:
-    def __init__(self):
+FRED_SERIES_URL = 'https://api.stlouisfed.org/fred/series/observations'
+
+
+class FREDError(Exception):
+    '''
+    FRED data could not be loaded. kind is one of:
+        unreachable - no response from FRED
+        refused - FRED answered with an error, often a missing or invalid API key (status is its HTTP status)
+        no_data - FRED answered, but without the data asked for
+    '''
+    def __init__(self, message: str, kind: str, status: int | None = None) -> None:
+        super().__init__(message)
+        self.kind = kind
+        self.status = status
+
+
+def default_api_key() -> str | None:
+    '''
+    Streamlit secrets when running under Streamlit, then the FRED_API_KEY (or legacy fred_api_key) env var
+    '''
+    if 'streamlit' in sys.modules:
         try:
-            self.api_key = st.secrets["FRED_API_KEY"]
-        except:
-            self.api_key = os.environ.get('fred_api_key')
-            
-        self.series_url = 'https://api.stlouisfed.org/fred/series/observations'
+            return sys.modules['streamlit'].secrets['FRED_API_KEY']
+        except Exception:
+            pass
+    return os.environ.get('FRED_API_KEY') or os.environ.get('fred_api_key')
+
+
+class FRED:
+    def __init__(self, api_key: str | None = None, series_url: str = FRED_SERIES_URL, timeout: float = 10):
+        self.api_key = api_key if api_key is not None else default_api_key()
+        self.series_url = series_url
+        self.timeout = timeout
         self.file_type = 'json'
         self.fred_ids = {'mgt_rate': 'MORTGAGE30US',
-                         'cpi': 'USACPALTT01CTGYM',
+                         'cpi': 'CPIAUCSL',
                          'sofr': 'SOFR',
                          'ffr': 'DFEDTARU',
+                         'ffr_lower': 'DFEDTARL',
                          'ffr_fcst': 'FEDTARCTM',
                          'usdx': 'DTWEXBGS',
                          'home_price_index': 'CSUSHPINSA',
@@ -33,39 +57,54 @@ class FRED:
                          'private_investment':'GPDI',
                          '10yr_tbill':'DGS10'
                          }
+        # FRED units transformation per series: pc1 is percent change from a year ago
+        self.fred_units = {'cpi': 'pc1'}
 
     def get_fred_data(self, data_id: str, start_date: str, end_date: str=None, frequency: str=None) -> pd.DataFrame:
+        '''
+        Returns columns date and data_id, skipping missing observations. Raises FREDError on any failure.
+        '''
         fred_id = self.fred_ids[data_id]
         params = {'series_id': fred_id,
-                'api_key': self.api_key, 
+                'api_key': self.api_key,
                 'file_type': self.file_type,
                 'observation_start': start_date,
                 'observation_end': end_date,
                 'frequency': frequency,
-                'aggregation_method': 'eop'
+                'aggregation_method': 'eop' if frequency else None,
+                'units': self.fred_units.get(data_id),
                 }
+        try:
+            r = requests.get(self.series_url, params=params, timeout=self.timeout)
+        except requests.RequestException as e:
+            raise FREDError(f"couldn't reach FRED for {fred_id}: {type(e).__name__}", 'unreachable') from e
+        try:
+            body = r.json()
+        except ValueError:
+            body = {}
+        if r.status_code != 200:
+            raise FREDError(f"FRED returned {r.status_code} for {fred_id}: {body.get('error_message', '')}",
+                            'refused', r.status_code)
+        if not isinstance(body.get('observations'), list):
+            raise FREDError(f'FRED returned no observations for {fred_id}', 'no_data')
 
-        r = json.loads(requests.get(self.series_url, params=params).text)
-        data = {'date':[], data_id:[]}
-        f = lambda x: np.nan if i['value']=='.' else float(i['value'])
-        for i in r['observations']:
+        data = {'date': [], data_id: []}
+        for i in body['observations']:
             if i['value'] == '.':
                 continue
-            else:
-                data[data_id].append(f(i))
-                data['date'].append(pd.to_datetime(i['date']))        
-        
-        df = pd.DataFrame(data)
+            data[data_id].append(float(i['value']))
+            data['date'].append(pd.to_datetime(i['date']))
+        return pd.DataFrame(data)
 
-        return df
-    
     def plot(self, df: pd.DataFrame, title: str, y_label: str):
+        import matplotlib.pyplot as plt
+
         fig, ax = plt.subplots()
         ax.plot(df['date'], df.iloc[:,1])
         last_date = df['date'].max()
         last_value = round(df.iloc[:,1].iloc[-1], 2)
-        annotation_text = f"Date: {last_date.strftime('%Y-%m-%d')}\nValue: {last_value}%"
-        
+        annotation_text = f"Date: {last_date.strftime('%Y-%m-%d')}\nValue: {last_value}"
+
         fig.canvas.draw()
 
         x_lim = ax.get_xlim()
@@ -73,7 +112,7 @@ class FRED:
 
         x_coord = x_lim[1] - (x_lim[1] - x_lim[0]) * 0.1
         y_coord = y_lim[0] + (y_lim[1] - y_lim[0]) * 0.1
-        
+
         ax.annotate(annotation_text, xy=(last_date, last_value),
             xytext=(x_coord, y_coord),
             arrowprops=dict(arrowstyle='->'),

@@ -1,0 +1,12 @@
+{% extends "base.html" %}
+{% block content %}
+<h1>{{ title }}</h1>
+{% if status == 404 %}
+<p>There's no page at this address. Try one of the pages above.</p>
+{% elif status == 405 %}
+<p>This page doesn't accept that kind of request.</p>
+{% else %}
+<p>The server ran into a problem with this request. Try again, or change the inputs.</p>
+{% endif %}
+<p><a href="/">Go to the home page</a></p>
+{% endblock %}

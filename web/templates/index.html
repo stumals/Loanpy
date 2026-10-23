@@ -1,0 +1,24 @@
+{% extends "base.html" %}
+{% block title %}Mortgage calculators{% endblock %}
+{% block content %}
+<div class="side-by-side">
+  <div class="lead">
+    <h1>Know a mortgage before you sign</h1>
+    <p>See what a home loan really costs, what you'd make if you sold, and how it compares with renting.</p>
+    <ul class="tools">
+      <li><a href="/mortgage">Mortgage analysis</a>: payments, home value, and profit, year by year.</li>
+      <li><a href="/rent-or-buy">Rent or buy</a>: owning compared with renting and investing the difference.</li>
+      <li><a href="/down-payments">Compare down payments</a>: the down payment that leaves you best off.</li>
+    </ul>
+    <a class="button" href="/mortgage">Analyze a mortgage</a>
+  </div>
+  <div class="aside">
+    <h2>Market data</h2>
+    <p>Mortgage rates, inflation, home prices, and affordability from <a href="https://fred.stlouisfed.org/">FRED</a>.</p>
+    <ul class="tools">
+      <li><a href="/economy">Economic data</a></li>
+      <li><a href="/forecast">Mortgage rate forecast</a></li>
+    </ul>
+  </div>
+</div>
+{% endblock %}

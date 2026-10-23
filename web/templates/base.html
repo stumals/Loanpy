@@ -1,0 +1,39 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="description" content="See what a home loan really costs, what you'd make if you sold, and how it compares with renting.">
+    <title>{% block title %}{{ title }}{% endblock %} - Loanpy</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+    <link rel="icon" href="{{ url_for('static', filename='favicon.svg') }}" type="image/svg+xml">
+  </head>
+  <body>
+    <div class="wrap">
+      <div class="card">
+        <header class="nav">
+          <a class="brand" href="/">
+            <svg class="logo" viewBox="0 0 32 32" aria-hidden="true"><path d="M5 16.5 16 7l11 9.5M9 14v12h14V14M13.5 26v-6h5v6"/></svg>
+            Loanpy
+          </a>
+          <nav aria-label="Pages">
+            {% for path, label in nav[1:] %}
+            <a href="{{ path }}"{% if request.path == path %} aria-current="page"{% endif %}>{{ label }}</a>
+            {% endfor %}
+          </nav>
+        </header>
+        <main>
+          {% block content %}{% endblock %}
+        </main>
+      </div>
+      <footer>
+        <nav class="footer-nav" aria-label="More">
+          {% for path, label in nav %}<a href="{{ path }}">{{ label }}</a>{% endfor %}
+          <a href="https://fred.stlouisfed.org/">Data from FRED</a>
+          <a href="https://github.com/stumals/Loanpy">Source code</a>
+        </nav>
+        <p class="fineprint">Estimates for planning, not financial advice.</p>
+      </footer>
+    </div>
+  </body>
+</html>

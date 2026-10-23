@@ -1,0 +1,66 @@
+{% extends "calculator.html" %}
+{% from "_macros.html" import stat, info %}
+{% block title %}Mortgage analysis{% endblock %}
+{% block heading %}Mortgage analysis{% endblock %}
+{% block results %}
+<div class="stats">
+  {{ stat("Monthly payment", r.payment|money_cents, "payment",
+     "Principal and interest. With property tax, PMI, and maintenance, the first year averages "
+     ~ r.first_year_monthly|money ~ " a month.") }}
+  {{ stat("Cash at closing", r.cash_at_closing|money) }}
+  {{ stat("Loan amount", r.loan_amt|money) }}
+  {{ stat("Profit if you sell after " ~ r.years ~ " years", r.profit|money, "profit",
+     "The sale price, less the loan payoff and everything you paid along the way. The breakdown is below.") }}
+</div>
+
+{% for chart in r.charts %}{{ chart }}{% endfor %}
+
+<h2>Profit after {{ r.years }} years</h2>
+<div class="table-scroll"><table class="numbers breakdown">
+  <tbody>
+    {% for label, amount in r.breakdown %}
+    <tr><th scope="row">{{ label }}</th><td>{{ amount|signed_money }}</td></tr>
+    {% endfor %}
+  </tbody>
+  <tfoot>
+    <tr><th scope="row">Profit</th><td>{{ r.profit|money }}</td></tr>
+  </tfoot>
+</table></div>
+
+<h2>Year by year</h2>
+<div class="table-scroll">
+  <table class="numbers">
+    <thead>
+      <tr>
+        <th scope="col" rowspan="2">Year</th>
+        <th scope="col" rowspan="2">Home value</th>
+        <th scope="col" rowspan="2">Loan balance</th>
+        <th scope="colgroup" colspan="5" class="group">Paid during the year</th>
+        <th scope="col" rowspan="2">Profit if you sell</th>
+      </tr>
+      <tr>
+        <th scope="col">Principal</th>
+        <th scope="col">Interest</th>
+        <th scope="col">PMI</th>
+        <th scope="col">Property tax</th>
+        <th scope="col">Maintenance</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for row in r.rows %}
+      <tr>
+        <th scope="row">{{ row.year }}</th>
+        <td>{{ row.home_value|money }}</td>
+        <td>{{ row.end_bal|money }}</td>
+        <td>{{ row.principal|money }}</td>
+        <td>{{ row.interest|money }}</td>
+        <td>{{ row.pmi|money }}</td>
+        <td>{{ row.prop_tax|money }}</td>
+        <td>{{ row.maint|money }}</td>
+        <td>{{ row.profit|money }}</td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+{% endblock %}

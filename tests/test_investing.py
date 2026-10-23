@@ -27,9 +27,7 @@ def test_rent_vs_buy_gap_is_the_net_worth_gap():
     loan = make_loan(down_pmt=0.2)
     owner, renter = loan.rent_vs_buy(1800, 0.03, mkt_return=0.10, cap_gains_tax=0.15, num_years_analysis=15)
     end = loan.amort_table_detail().iloc[15 * 12 - 1]
-    owner_worth = (
-        end["home_value"] - end["home_sale_cost"] - end["end_bal"] + owner["mkt_return_net"].iloc[-1]
-    )
+    owner_worth = end["home_value"] - end["home_sale_cost"] - end["end_bal"] + owner["mkt_return_net"].iloc[-1]
     renter_worth = renter["mkt_return_net"].iloc[-1]
     gap = owner["return_total"].iloc[-1] - renter["return_total"].iloc[-1]
     assert gap == pytest.approx(owner_worth - renter_worth)
@@ -69,9 +67,7 @@ def test_down_payment_gap_is_the_net_worth_gap():
     worth = []
     for _, df, loan in cdp.loans_dict.values():
         end = loan.amort_table_detail().iloc[10 * 12 - 1]
-        worth.append(
-            end["home_value"] - end["home_sale_cost"] - end["end_bal"] + df["mkt_return"].iloc[10 * 12 - 1]
-        )
+        worth.append(end["home_value"] - end["home_sale_cost"] - end["end_bal"] + df["mkt_return"].iloc[10 * 12 - 1])
     gap = summary["total_profit"].iloc[0] - summary["total_profit"].iloc[1]
     assert gap == pytest.approx(worth[0] - worth[1])
 

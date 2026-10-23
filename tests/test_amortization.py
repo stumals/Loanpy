@@ -65,9 +65,7 @@ def test_detail_leaves_the_base_table_alone():
     list(itertools.product([0, 0.05], [0, 0.2, 0.5], [False, True], [12, 26])),
 )
 def test_detail_invariants(rate, down, finance, freq):
-    loan = make_loan(
-        rate_annual=rate, down_pmt=down, closing_cost=5000, closing_cost_finance=finance, pmt_freq=freq
-    )
+    loan = make_loan(rate_annual=rate, down_pmt=down, closing_cost=5000, closing_cost_finance=finance, pmt_freq=freq)
     df = loan.amort_table_detail()
 
     assert np.isfinite(df.select_dtypes("number").to_numpy()).all()

@@ -32,7 +32,7 @@ testpaths = ["test_loanpy.py", "tests"]
 filterwarnings = ["error::RuntimeWarning"]
 
 [tool.ruff]
-line-length = 110
+line-length = 120
 include = ["web/**/*.py", "tests/**/*.py"]
 
 [tool.ruff.lint]

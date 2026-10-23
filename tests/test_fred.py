@@ -72,9 +72,7 @@ def test_request_parameters(http):
 
 
 def test_refused_request_raises(http):
-    http.response = FakeResponse(
-        400, {"error_code": 400, "error_message": "Bad Request. api_key is not registered."}
-    )
+    http.response = FakeResponse(400, {"error_code": 400, "error_message": "Bad Request. api_key is not registered."})
     with pytest.raises(FREDError) as e:
         FRED(api_key="bad").get_fred_data("mgt_rate", "2026-01-01")
     assert e.value.kind == "refused"

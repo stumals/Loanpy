@@ -1,0 +1,15 @@
+{% extends "base.html" %}
+{% from "_macros.html" import calculator_form %}
+{% block content %}
+<h1>{% block heading %}{% endblock %}</h1>
+<div class="calc">
+  <aside aria-label="Inputs">{{ calculator_form(form) }}</aside>
+  <section class="results" aria-label="Results">
+    {% if form.errors %}
+    <div class="message error" role="alert">Some inputs need a fix. Check the highlighted fields, then select <b>Calculate</b>.</div>
+    {% else %}
+    {% block results %}{% endblock %}
+    {% endif %}
+  </section>
+</div>
+{% endblock %}

@@ -1,0 +1,16 @@
+#!/bin/sh
+# The one check roster. CI and local runs both call it.
+#   scripts/check fast   format, lint, lockfile, and app import
+#   scripts/check full   fast, plus every test (the default)
+set -eu
+cd "$(dirname "$0")/.."
+mode=${1:-full}
+
+uv lock --check
+uv run --locked ruff format --check
+uv run --locked ruff check
+uv run --locked python -c "import web; web.create_app()"
+if [ "$mode" = full ]; then
+  uv run --locked pytest -q
+fi
+echo "scripts/check $mode: ok"

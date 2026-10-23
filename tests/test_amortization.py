@@ -1,0 +1,84 @@
+import itertools
+
+import numpy as np
+import pytest
+
+from loan.core import Loan
+from loan.loan_input import LoanInput
+
+BASE = {
+    "asset_amt": 300000,
+    "rate_annual": 0.05,
+    "num_years": 30,
+    "pmt_freq": 12,
+    "down_pmt": 0.10,
+    "closing_cost": 0,
+    "closing_cost_finance": False,
+    "prop_tax_rate": 0.01,
+    "pmi_rate": 0.01,
+    "maint_rate": 0.01,
+    "home_value_appreciation": 0.05,
+    "home_sale_percent": 0.06,
+}
+
+
+def make_loan(**overrides):
+    return Loan(LoanInput(**{**BASE, **overrides}))
+
+
+def test_pmi_uses_the_pmi_rate():
+    df = make_loan(pmi_rate=0.005).amort_table_detail()
+    assert df["pmi"].iloc[0] == pytest.approx(270000 * 0.005 / 12)
+
+
+def test_tax_and_maintenance_follow_the_payment_frequency():
+    df = make_loan(pmt_freq=26).amort_table_detail()
+    year1 = df[df["year"] == 1]
+    start_value = year1["home_value"].min()
+    assert year1["prop_tax"].sum() == pytest.approx(start_value * 0.01)
+    assert year1["maint"].sum() == pytest.approx(start_value * 0.01)
+
+
+def test_zero_rate_loan_amortizes_without_nan():
+    df = make_loan(rate_annual=0).amort_table_detail()
+    assert np.isfinite(df.select_dtypes("number").to_numpy()).all()
+    assert df["interest"].sum() == 0
+    assert df["principal"].iloc[0] == pytest.approx(270000 / 360)
+    assert df["end_bal"].iloc[-1] == pytest.approx(0)
+
+
+def test_down_payment_and_closing_costs_keep_cents():
+    df = make_loan(asset_amt=333333, down_pmt=0.2, closing_cost=1234.56).amort_table_detail()
+    assert df["down_pmt"].iloc[0] == pytest.approx(66666.6)
+    assert df["closing_costs"].iloc[0] == pytest.approx(1234.56)
+
+
+def test_detail_leaves_the_base_table_alone():
+    loan = make_loan()
+    columns = list(loan.amort_table.columns)
+    loan.amort_table_detail()
+    assert list(loan.amort_table.columns) == columns
+
+
+@pytest.mark.parametrize(
+    "rate, down, finance, freq",
+    list(itertools.product([0, 0.05], [0, 0.2, 0.5], [False, True], [12, 26])),
+)
+def test_detail_invariants(rate, down, finance, freq):
+    loan = make_loan(
+        rate_annual=rate, down_pmt=down, closing_cost=5000, closing_cost_finance=finance, pmt_freq=freq
+    )
+    df = loan.amort_table_detail()
+
+    assert np.isfinite(df.select_dtypes("number").to_numpy()).all()
+    assert len(df) == loan.nper
+    assert df["principal"].sum() == pytest.approx(loan.amt)
+    assert df["closing_costs"].sum() + (loan.amt - 300000 * (1 - down)) == pytest.approx(5000)
+
+    parts = df[["pmt", "pmi", "prop_tax", "maint", "closing_costs", "down_pmt"]].sum(axis=1)
+    assert np.allclose(parts, df["all_in_pmts"])
+
+    # Profit if sold: sale proceeds less everything paid in, period by period.
+    paid_in = df["down_pmt"].cumsum() + df["principal"].cumsum() + df["cum_costs"]
+    proceeds = df["home_value"] - df["home_sale_cost"] - df["end_bal"]
+    assert np.allclose(df["profit"], proceeds - paid_in)

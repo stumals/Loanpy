@@ -12,6 +12,8 @@ def amort(amt, nper, pmt, pmt_freq, rate):
     principal = -npf.ppmt(rate, periods, nper, amt)
 
     def balance(pv, rate, nper, pmt):
+        if rate == 0:
+            return pv - pmt * nper
         d = (1 + rate) ** nper
         return pv * d - pmt*(d - 1)/rate
     

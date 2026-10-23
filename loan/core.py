@@ -2,6 +2,7 @@ import numpy as np
 import numpy_financial as npf
 import pandas as pd
 
+from .invest import invest
 from .loan_input import LoanInput
 from utils.npf_amort import amort
 
@@ -88,46 +89,63 @@ class Loan():
 
         return df
     
-    def rent_vs_buy(self, rent: int, rent_increase: float, mkt_return: float=.10,
-                    cap_gains_tax: float=.15, num_years_analysis: int=10) -> pd.DataFrame:
+    def check_years(self, num_years: int) -> None:
+        '''
+        Raises ValueError unless num_years is between 1 and the loan term
+        '''
+        if not 1 <= num_years <= self.num_years:
+            raise ValueError(f'years to analyze ({num_years}) must be between 1 and the loan term ({self.num_years})')
 
+    def rent_vs_buy(self, rent: float, rent_increase: float, mkt_return: float=.10,
+                    cap_gains_tax: float=.15, num_years_analysis: int=10) -> tuple[pd.DataFrame, pd.DataFrame]:
+        '''
+        Compares owning the home against renting on the same budget
+
+        Each period the owner and the renter both spend the larger of the all-in ownership cost and the rent
+        (rent is per period). Whoever pays less for housing invests the difference in the market.
+
+        Totals are wealth gained net of every dollar spent, so owner total less renter total is the
+        difference in net worth between the two:
+            owner return_total - profit if the home were sold, plus after-tax market gains
+            renter return_total - after-tax market gains, less all rent paid
+
+        Returns one row per year for the owner and one for the renter, with values at the end of each year.
+
+        Table columns:
+            year - loan year
+            profit - owner's profit if the home were sold (owner only)
+            rent, rent_cumulative - rent per period, and all rent paid so far (renter only)
+            diff_cumulative - money invested so far
+            mkt_return_net - market account value after capital gains tax
+            mkt_gain_net - market gains after capital gains tax
+            return_total - wealth gained net of every dollar spent
+        '''
+        self.check_years(num_years_analysis)
         df = self.amort_table_detail()
+        rent_pmts = rent * (1 + rent_increase) ** (df['year'] - 1)
 
-        df_rent = pd.DataFrame(data=((1+rent_increase)**(df['year'] - 1)) * rent).rename(columns={'year':'rent'})
-        df_rent['year'] = df['year']
+        def side(contributions):
+            account = invest(contributions.clip(lower=0), mkt_return, self.pmt_freq, cap_gains_tax)
+            return pd.DataFrame({'year': df['year'],
+                                 'diff_cumulative': account['contributed'],
+                                 'mkt_return_net': account['value_net'],
+                                 'mkt_gain_net': account['gain_net']})
 
-        df['diff'] = df_rent['rent'] - df['all_in_pmts']
-        df['diff'] = df['diff'].apply(lambda x: x if x > 0 else 0)
+        owner = side(rent_pmts - df['all_in_pmts'])
+        owner['profit'] = df['profit']
+        owner['return_total'] = owner['profit'] + owner['mkt_gain_net']
 
-        df_rent['diff'] = df['all_in_pmts'] - df_rent['rent']
-        df_rent['diff'] = df_rent['diff'].apply(lambda x: x if x > 0 else 0)
+        renter = side(df['all_in_pmts'] - rent_pmts)
+        renter['rent'] = rent_pmts
+        renter['rent_cumulative'] = rent_pmts.cumsum()
+        renter['return_total'] = renter['mkt_gain_net'] - renter['rent_cumulative']
 
-        df['mkt_return'] = df['diff'].cumsum() * np.array([1+(mkt_return/self.pmt_freq)]*self.nper).cumprod()
-        df['diff_cumulative'] = df['diff'].cumsum()
-        df['cap_gains_cumulative'] = df['mkt_return'] - df['diff_cumulative']
-        df['cap_gains_tax'] = df['cap_gains_cumulative'] * cap_gains_tax
-        df['mkt_return_net'] = df['mkt_return'] - df['cap_gains_tax']
-        df['return_total'] = df['mkt_return_net'] + df['profit']
+        cols_owner = ['year', 'profit', 'diff_cumulative', 'mkt_return_net', 'mkt_gain_net', 'return_total']
+        cols_renter = ['year', 'rent', 'rent_cumulative', 'diff_cumulative', 'mkt_return_net', 'mkt_gain_net',
+                       'return_total']
 
-        df_rent['mkt_return'] = df_rent['diff'].cumsum() * np.array([1+(mkt_return/self.pmt_freq)]*self.nper).cumprod()
-        df_rent['diff_cumulative'] = df_rent['diff'].cumsum()
-        df_rent['cap_gains_cumulative'] = df_rent['mkt_return'] - df_rent['diff_cumulative']
-        df_rent['cap_gains_tax'] = df_rent['cap_gains_cumulative'] * cap_gains_tax
-        df_rent['mkt_return_net'] = df_rent['mkt_return'] - df_rent['cap_gains_tax']
-        df_rent['rent_cumulative'] = df_rent['rent'].cumsum()
-        df_rent['return_total'] = df_rent['mkt_return_net'] - df_rent['rent_cumulative']
+        def by_year(table, cols):
+            table = table.loc[:, cols].groupby('year').last().reset_index()
+            return table[table['year'] <= num_years_analysis]
 
-        cols_df = ['year', 'profit', 'diff_cumulative', 'mkt_return_net', 'return_total']
-        cols_rent = ['year', 'rent', 'rent_cumulative', 'diff_cumulative', 'mkt_return_net', 'return_total']
-
-        df_year = df.loc[:, cols_df].groupby('year').max().reset_index()
-        df_rent_year = df_rent.loc[:, cols_rent].groupby('year').max().reset_index()
-        df_year = df_year[df_year['year']<=num_years_analysis]
-        df_rent_year = df_rent_year[df_rent_year['year']<=num_years_analysis]
-        
-        return (df_year, df_rent_year)
-
-
-
-
-
+        return (by_year(owner, cols_owner), by_year(renter, cols_renter))

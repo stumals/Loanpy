@@ -68,11 +68,12 @@ with st.container():
             '''
             - Compares the financial outcomes of home ownership and renting.
             - Considers all payments related to home ownership (down payment, mortgage payment, taxes, etc.) and rent.
-            - If the cost of home ownership is lower than renting, the difference is invested in the market. This is shown as `diff_cumulative` in the dataframe.
+            - Both spend the same each month. Whoever pays less for housing invests the difference in the market. This is shown as `diff_cumulative` in the dataframe.
             - Market returns are compounded based on the Payment Frequency, which is typically monthly.
-            - Capital gains tax is deducted from market returns.
-            - Home Owner Total Return is calculated as the sum of profit from home ownership and market returns.
-            - Renter Total Return is calculated as the market return minus rent.
+            - Capital gains tax is deducted from market gains (`mkt_gain_net`).
+            - Home Owner Total Return is the profit from selling the home plus market gains.
+            - Renter Total Return is market gains minus all rent paid.
+            - The gap between the two totals is the gap in net worth.
             - The analysis helps in making an informed decision between renting and buying a home based on potential returns.
             '''
         )
